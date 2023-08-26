@@ -2,7 +2,7 @@ import socket
 import time
 import threading  # 导入线程模块
 import os 
-pause_event = threading.Event()
+# pause_event = threading.Event()
 FILE_PATH = "./filerecieving/"
 
 
@@ -31,13 +31,7 @@ def recv_msg(sock):
     return sock.recv(msg_len).decode('utf-8')
 
 
-# def send_file(sock,msg):
-#     # 将消息编码为字节流
-#     msg = msg
-#     # 创建固定长度的消息头，例如4个字节，包含消息长度
-#     msg_header = f"{len(msg):<4}".encode('utf-8')
-#     # 发送消息头和消息主体
-#     sock.sendall(msg_header + msg)
+
 
 def send_file(sock, file_chunk):
     # 发送文件块大小
@@ -166,7 +160,7 @@ def main():
 
     # 创建并启动一个线程来接收服务端消息
     
-    pause_event.set()
+    # pause_event.set()
     recv_thread = threading.Thread(target=receive_messages, args=(client_sock, pause_event))
     recv_thread.daemon = True  # 设置为守护线程，这样当主线程退出时，接收线程也会退出
     recv_thread.start()
