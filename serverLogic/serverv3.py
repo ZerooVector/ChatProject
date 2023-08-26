@@ -1,7 +1,7 @@
 import socket
 import threading
-import pandas as pd # permanently act as an online database 
-import numpy as np 
+# import pandas as pd # permanently act as an online database 
+# import numpy as np 
 import time 
 import sqlite3
 import datetime as dt 
