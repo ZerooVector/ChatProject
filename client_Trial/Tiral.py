@@ -43,27 +43,29 @@ class customContactQlistWidgetItem(QListWidgetItem):
         # 布局添加到widget
         self.widget.setLayout(self.hbox)
         
-class customChatQlistWidgetItem(customContactQlistWidgetItem):
+
+# unfinished
+# class customChatQlistWidgetItem(customContactQlistWidgetItem):
     
-    def __init__(self, name, img, lastmsg):
-        super().__init__(name, img)
-        self.lastmsg = lastmsg
-        self.lastMsgLabel = QLabel()
-        self.lastMsgLabel.setText(self.lastmsg)
+#     def __init__(self, name, img, lastmsg):
+#         super().__init__(name, img)
+#         self.lastmsg = lastmsg
+#         self.lastMsgLabel = QLabel()
+#         self.lastMsgLabel.setText(self.lastmsg)
 
-    def set_distribution(self):
-        # 尝试box的嵌套
-        self.vbox = QVBoxLayout()
-        self.vbox.addWidget(self.nameLabel)
-        self.vbox.addWidget(self.lastMsgLabel)
+#     def set_distribution(self):
+#         # 尝试box的嵌套
+#         self.vbox = QVBoxLayout()
+#         self.vbox.addWidget(self.nameLabel)
+#         self.vbox.addWidget(self.lastMsgLabel)
 
-        # vbox 在 hbox的里面
-        self.hbox = QHBoxLayout()
-        self.hbox.addWidget(self.avatorLabel)
-        self.vbox.addWidget(self.vbox)
+#         # vbox 在 hbox的里面
+#         self.hbox = QHBoxLayout()
+#         self.hbox.addWidget(self.avatorLabel)
+#         self.vbox.addWidget(self.vbox)
         
-        # 布局添加到widget
-        self.widget.setLayout(self.hbox)
+#         # 布局添加到widget
+#         self.widget.setLayout(self.hbox)
 
 
 
@@ -71,16 +73,17 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None):
         super(mainWindow, self).__init__(parent)
         self.setupUi(self)
-        self.loadChatList()
+        # self.loadChatList()
         self.loadContactList()
 
-    def loadChatList(self):
-        lsFriend = [("A", "./pic.jpg", "hi, what's up"),("B", "./pic.jpg", "hi, what's up")]
+# unfinished
+    # def loadChatList(self):
+    #     lsFriend = [("A", "./pic.jpg", "hi, what's up"),("B", "./pic.jpg", "hi, what's up")]
         
-        friend_size = 2
+    #     friend_size = 2
 
-        for i in range(friend_size):
-            item = customChatQlistWidgetItem('')
+    #     for i in range(friend_size):
+    #         item = customChatQlistWidgetItem('')
 
 
     def loadContactList(self):
