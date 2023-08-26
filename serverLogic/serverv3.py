@@ -160,13 +160,13 @@ def login(cursor,sock,data,db_conn):
     cursor.execute(cmd,(input_id,))
     result = cursor.fetchall() 
     if len(result) == 0:
-        send_msg(sock,"L01+ERROR")
+        # send_msg(sock,"L01+ERROR")
         send_msg(sock,"ID not exist!")
         return 0
     correct_password = result[0][0]
     if correct_password != input_password:
-        send_msg(sock,"L01+ERROR")
-        send_msg(sock,"Password Incorrect!")
+        send_msg(sock,"Password Wrong!")
+        # send_msg(sock,"Password Incorrect!")
         return 0
     else :
         
@@ -178,7 +178,7 @@ def login(cursor,sock,data,db_conn):
         cursor.execute(cmd,("online",input_id,))
         db_conn.commit()
         send_msg(sock,"L01+SUCCESS")
-        send_msg(sock,"Successfully Login!")
+        # send_msg(sock,"Successfully Login!")
         return input_id
         
 
@@ -584,7 +584,7 @@ def getgroupmember(cursor,sock,data):
 def setgroupmanager(cursor,sock,userid,data,db_conn):
     data = data.split("||-||")
     target = data[0] 
-    memlist = data[1].strip("[]").split("||-||")
+    memlist = data[1].strip("[]").split(",")
     cmd = '''
     SELECT master FROM usergroup 
     WHERE groupid = ? 
@@ -645,7 +645,7 @@ def addgrouprequest(cursor,sock,userid,data,db_conn):
     send_msg(sock,"Successfully Send Request!")
 
 
-def inversegetmanager_(cursor,sock,userid):
+def inversegetmanager_(cursor,sock,userid): # buguan
     cmd = '''
     SELECT groupid FROM groupmanager
     WHERE userid = ?
@@ -674,7 +674,7 @@ def getpreviousgrouprequest_(cursor,sock,userid):
     '''
     res = [] 
     for g in  manage_group:
-        cursor.execute(cmd,(g,userid,dt,"grouprq"))
+        cursor.execute(cmd,(g,userid,ct,"grouprq"))
         rows = cursor.fetchall()
         for row in rows:
             res.append(row)
@@ -952,7 +952,7 @@ def getgroupnewmessage(cursor,sock,userid,data,db_conn):
 
 
 
-def getfilecount_(cursor):
+def getfilecount_(cursor): #buguan
     cmd = '''
     SELECT * FROM file
     '''
@@ -1203,7 +1203,7 @@ def getpreiviousgroupfile_(cursor,sock,userid,source,db_conn,clear = 1):
 
 
 
-def getnowgroupfile_(cursor,sock,userid,source,db_conn,clear = 1):
+def getnewgroupfile_(cursor,sock,userid,source,db_conn,clear = 1):
     cmd = '''
     SELECT originalname,storagename
     FROM flie 
@@ -1249,9 +1249,11 @@ def handle_client(client_sock): # callback function, all functions of our app sh
 
     while True:
         data = recv_msg(client_sock)
+        print(data)
 
         flag_bits = data[0:4]
         data = data[4:]
+        
 
 
         if flag_bits == "L00+": #signup 
