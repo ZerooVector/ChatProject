@@ -245,11 +245,6 @@
           <property name="sortingEnabled">
            <bool>true</bool>
           </property>
-          <item>
-           <property name="text">
-            <string>新建项目</string>
-           </property>
-          </item>
          </widget>
         </item>
        </layout>
