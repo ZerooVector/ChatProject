@@ -183,7 +183,6 @@
           <zorder>chatTextBrowser</zorder>
           <zorder>chatFuncList</zorder>
           <zorder>chatSendBtn</zorder>
-          <zorder>splitter</zorder>
          </widget>
         </item>
        </layout>
@@ -194,23 +193,96 @@
      <attribute name="title">
       <string>Contact</string>
      </attribute>
-     <widget class="QListWidget" name="contactFriendList">
+     <widget class="QLineEdit" name="contactSearchEdit">
+      <property name="geometry">
+       <rect>
+        <x>8</x>
+        <y>12</y>
+        <width>201</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="placeholderText">
+       <string>用户名/id 搜索好友</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="searchAccountBtn">
+      <property name="geometry">
+       <rect>
+        <x>213</x>
+        <y>11</y>
+        <width>21</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>search</string>
+      </property>
+     </widget>
+     <widget class="QStackedWidget" name="contactListStack">
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>0</y>
-        <width>161</width>
-        <height>550</height>
+        <y>50</y>
+        <width>274</width>
+        <height>491</height>
        </rect>
       </property>
-      <property name="sortingEnabled">
-       <bool>true</bool>
+      <property name="currentIndex">
+       <number>0</number>
       </property>
-      <item>
-       <property name="text">
-        <string>新建项目</string>
-       </property>
-      </item>
+      <widget class="QWidget" name="contactFriendPage">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QPushButton" name="manageContactsBtn">
+          <property name="text">
+           <string>ManageContacts</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QListWidget" name="contactFriendList">
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+          <item>
+           <property name="text">
+            <string>新建项目</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="addFriendPage">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QListWidget" name="addFriendList">
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+          <item>
+           <property name="text">
+            <string>新建项目</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QPushButton" name="addAccountBtn">
+      <property name="geometry">
+       <rect>
+        <x>240</x>
+        <y>11</y>
+        <width>21</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>PushButton</string>
+      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="contactTab">
