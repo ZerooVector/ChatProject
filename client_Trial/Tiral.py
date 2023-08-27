@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QDialog
-from PyQt5 import uic
-from PyQt5.QtWidgets import QListWidgetItem, QLabel, QHBoxLayout, QVBoxLayout
+from PyQt5 import uic, QtCore
+from PyQt5.QtWidgets import QListWidgetItem, QLabel, QHBoxLayout, QVBoxLayout, QPushButton
 # from PyQt5.QtCore import *
 from PyQt5.QtGui import QPainter,QPixmap
 
@@ -91,7 +91,84 @@ def recv_file(sock):
 
 
 
+###########################
+import socket
+import time
+import threading  # 导入线程模块
+import os 
+# pause_event = threading.Event()
+FILE_PATH = "./filerecieving/"
+client_sock = ""
 
+
+
+############ tool functions ############## 
+def send_msg(sock, msg):
+    # 将消息编码为字节流
+    msg = msg.encode('utf-8')
+    # 创建固定长度的消息头，例如4个字节，包含消息长度
+    msg_header = f"{len(msg):<4}".encode('utf-8')
+    # 发送消息头和消息主体
+    sock.sendall(msg_header + msg)
+
+
+def recv_msg(sock):
+    msg_header = sock.recv(4).decode('utf-8').strip()
+    
+    # 检查消息头是否为空
+    if not msg_header:
+        print("Connection closed by the server")
+        sock.close()
+        return None
+
+    
+    msg_len = int(msg_header)
+    # 根据消息头指定的长度接收消息主体
+    return sock.recv(msg_len).decode('utf-8')
+
+def send_file(sock, file_chunk):
+    # 发送文件块大小
+    header = f"{len(file_chunk):<4}"
+    sock.sendall(header.encode('utf-8'))
+
+    # 发送文件块
+    sock.sendall(file_chunk)
+
+def recv_file(sock):
+    try:
+        # 设置套接字超时为10秒
+        sock.settimeout(0.1)
+
+        # 接收文件块大小
+        header = sock.recv(4).decode('utf-8').strip()
+        chunk_size = int(header)
+        
+        # 循环接收文件块直到达到期望的大小
+        chunks = []
+        bytes_received = 0
+        while bytes_received < chunk_size:
+            chunk = sock.recv(min(chunk_size - bytes_received, 4096))
+            if not chunk:
+                # Connection closed before receiving expected data
+                raise Exception("Connection closed before receiving full data.")
+            chunks.append(chunk)
+            bytes_received += len(chunk)
+
+        data = b''.join(chunks)
+
+        # 重置套接字为阻塞模式（如果需要）
+        sock.setblocking(True)
+
+        return data
+    except socket.timeout:
+        print("Socket timed out while receiving data.")
+        return None
+    except Exception as e:
+        print(f"Error while receiving data: {e}")
+        return None
+
+
+##########################################################
 
 
 # Contact页面好友用户ListWidget的填充 自定义Item
@@ -100,28 +177,42 @@ class customContactQlistWidgetItem(QListWidgetItem):
     img_size = (50, 50)
     def __init__(self, name, img,):
         super().__init__()
-        self.widget = QWidget()
-        # 显示名字
-        self.nameLabel = QLabel()
-        self.nameLabel.setText(name)
 
-        print(name, img)
+        self.widget = QWidget()
+
         # 设置图像label
         self.avatorLabel = QLabel()
         #设置图像源于图像大小的函数
         self.avatorLabel.setPixmap(QPixmap(img).scaled(50, 50))
-        
+
+        # 显示名字
+        self.nameLabel = QLabel()
+        self.nameLabel.setText(name)
+
+        # 设置删除按钮
+        self.deleteContactBtn = QPushButton()
+        self.deleteContactBtn.setText("Delete")
+        # 槽函数，当按钮被点击时删除该项
+        self.deleteContactBtn.clicked.connect(self.deleteContact)
+
+
         # 设置item_widget的布局，写成函数便于继承重写
         self.set_distribution()
 
         # 设置自定义sizehint，否则无法显示 抄来的 不知道为什么
         self.setSizeHint(self.widget.sizeHint())
 
+    def deleteContact(self):
+        # self.listWidget()可能是内部的一个用于获得当前所在list_widget的一个函数
+        list_widget = self.listWidget()
+        list_widget.takeItem(list_widget.row(self))
+
     def set_distribution(self):
         # 设置布局
         self.hbox = QHBoxLayout()
         self.hbox.addWidget(self.avatorLabel)
         self.hbox.addWidget(self.nameLabel)
+        self.hbox.addWidget(self.deleteContactBtn)
         self.hbox.addStretch(1)     # 抄来的 不知道什么意思
         # 布局添加到widget
         self.widget.setLayout(self.hbox)
@@ -156,8 +247,42 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None):
         super(mainWindow, self).__init__(parent)
         self.setupUi(self)
+        # 好友列表的设置
+        self.contactListStack.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.contactListStack_showPageAdd = False
+        # 草函数 使得列表转向搜索or添加
+        self.addAccountBtn.clicked.connect(self.contactListStackSwitch)
+        # 槽函数 返回搜索结果
+        self.searchAccountBtn.clicked.connect(self.searchAccount)
+
         # self.loadChatList()
         self.loadContactList()
+
+    def searchAccount(self):
+        if self.contactListStack_showPageAdd == True:
+            #该if语句下做添加好友返回搜索结果的界面
+            ans_sreach = [('A', './pic.jpg')]
+            for i in range(len(ans_sreach)):
+                item = customContactQlistWidgetItem(ans_sreach[i][0], ans_sreach[i][1])
+                self.addFriendList.addItem(item)
+                self.addFriendList.setItemWidget(item, item.widget) 
+
+        else :
+            # 该if语句下做搜索已有好友结果的界面
+            pass
+
+    # 使得好友列表可以在搜索和显示中切换，通过bool参数showPageAdd
+    def contactListStackSwitch(self):
+        _translate = QtCore.QCoreApplication.translate
+        if self.contactListStack_showPageAdd == True:
+            self.contactListStack.setCurrentWidget(self.contactFriendPage)
+            self.contactSearchEdit.setPlaceholderText(_translate("LoginDialog", "用户名/id 搜索好友"))
+        else :
+            self.contactListStack.setCurrentWidget(self.addFriendPage)
+            self.contactSearchEdit.setPlaceholderText(_translate("LoginDialog", "用户名/id 搜索添加好友"))
+
+        self.contactListStack_showPageAdd = not self.contactListStack_showPageAdd
+
 
 # unfinished
     # def loadChatList(self):
@@ -177,6 +302,8 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             item = customContactQlistWidgetItem("A", img="./pic.jpg")
             self.contactFriendList.addItem(item)
             self.contactFriendList.setItemWidget(item, item.widget)
+
+
         
 
 class loginWindow(QDialog, Ui_LoginDialog):
@@ -212,7 +339,6 @@ class loginWindow(QDialog, Ui_LoginDialog):
 
 if __name__ == '__main__':
 
-    # global client_sock
 
     SERVER_IP = "127.0.0.1" 
     SERVER_PORT = 10020
@@ -226,6 +352,8 @@ if __name__ == '__main__':
         print("Connection failed! Error:", str(e))
         client_sock.close()
         exit()
+
+
 
 
     app = QApplication(sys.argv)
