@@ -584,16 +584,17 @@ def getgroupmember(cursor,sock,data):
         send_msg(sock,"Group not exist or group without members!")
     else :
         send_msg(sock,"G02+SUCCESS")
-        send_msg(sock,res)
+        send_msg(sock,str(res) )
     
 
 def setgroupmanager(cursor,sock,userid,data,db_conn):
     data = data.split("||-||")
     target = data[0] 
     memlist = data[1].strip("[]").split(",")
+    memlist.append(userid)
     cmd = '''
     SELECT master FROM usergroup 
-    WHERE groupid = ? 
+    WHERE id = ? 
     '''
     cursor.execute(cmd,(target,))
     res = cursor.fetchall()[0][0] 
@@ -602,8 +603,21 @@ def setgroupmanager(cursor,sock,userid,data,db_conn):
         send_msg(sock,"You cannot modifiy group info!")
         return 
     
+    all_mem = getgroupmember_(cursor,sock,target)
+    if set(memlist).issubset(set(all_mem)) == 0:
+        send_msg(sock,"G03+ERROR")
+        send_msg(sock,"Some user are not group member!")
+        return 
+
     cmd = '''
-    INSERT INTO groupmanager
+    DELETE FROM groupmanager
+    WHERE groupid  = ?
+    '''
+    cursor.execute(cmd,(target,))
+    db_conn.commit()
+    
+    cmd = '''
+    INSERT INTO groupmanager(groupid,userid)
     VALUES (?,?)
     '''
     for item in memlist:
@@ -630,7 +644,7 @@ def addgrouprequest(cursor,sock,userid,data,db_conn):
     rq = data 
     cmd = '''
     SELECT * FROM usergroup 
-    WHERE groupid = ?
+    WHERE id = ?
     '''
     cursor.execute(cmd,(rq,))
     rows = cursor.fetchall() 
@@ -639,13 +653,13 @@ def addgrouprequest(cursor,sock,userid,data,db_conn):
         send_msg(sock,"Cannot find this group!")
         return 
     cmd = '''
-    INSERT INTO message(initial,via,terminal,type,datetime,unreadflag)
-    VALUES(?,?,?,?,?,?)
+    INSERT INTO message(initial,via,terminal,type,datetime,unreadflag,content)
+    VALUES(?,?,?,?,?,?,?)
     '''
     ct = dt.datetime.now() 
     manager = getgroupmanager_(cursor,sock,rq)
     for person in manager:
-        cursor.execute(ct,(userid,rq,person,"grouprq",ct,"activate"))
+        cursor.execute(cmd,(userid,rq,person,"grouprq",ct,"activate","grouprq"))
         db_conn.commit() 
     send_msg(sock,"G04+SUCCESS")
     send_msg(sock,"Successfully Send Request!")
@@ -672,7 +686,7 @@ def getpreviousgrouprequest_(cursor,sock,userid):
         return 
     ct = dt.datetime.now()
     cmd = '''
-    SELECT initial,via,status FROM message
+    SELECT initial,via,unreadflag FROM message
     WHERE via = ?
     AND terminal = ?
     AND datetime < ?
@@ -685,6 +699,17 @@ def getpreviousgrouprequest_(cursor,sock,userid):
         for row in rows:
             res.append(row)
     return res 
+
+
+def getpreviousgrouprequest(cursor,sock,userid):
+    rows = getpreviousgrouprequest_(cursor,sock,userid)
+    if len(rows) == 0:
+        send_msg(sock,"G10+ERROR")
+        send_msg(sock,"No Add Group Request!")
+    else :
+        send_msg(sock,"G10+SUCCESS")
+        send_msg(sock,str(rows))
+
 
 def getunreadgrouprequest_(cursor,sock,userid):
     manage_group = inversegetmanager_(cursor,sock,userid)
@@ -703,17 +728,26 @@ def getunreadgrouprequest_(cursor,sock,userid):
     '''
     res = [] 
     for g in  manage_group:
-        cursor.execute(cmd,(g,userid,dt,"grouprq","activate"))
+        cursor.execute(cmd,(g,userid,ct,"grouprq","activate"))
         rows = cursor.fetchall()
         for row in rows:
             res.append(row)
     return res 
 
+def getunreadgrouprequest(cursor,sock,userid):
+    rows = getpreviousgrouprequest_(cursor,sock,userid)
+    if len(rows) == 0:
+        send_msg(sock,"G11+ERROR")
+        send_msg(sock,"No New Add Group Request!")
+    else :
+        send_msg(sock,"G11+SUCCESS")
+        send_msg(sock,str(rows))
+
 
 def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
     data = data.split("||-||")
-    group = data[1] 
-    user = data[0] 
+    group = data[0] 
+    user = data[1] 
     respose = data[2]
     cmd = '''
     SELECT * FROM message
@@ -774,7 +808,7 @@ def manageradduser(cursor,sock,userid,data,db_conn):
     user = data[1] 
     cmd = '''
     SELECT * FROM user
-    WHERE userid = ?
+    WHERE id = ?
     '''
     cursor.execute(cmd,(user,))
     res = cursor.fetchall() 
@@ -785,7 +819,7 @@ def manageradduser(cursor,sock,userid,data,db_conn):
     
     cmd = '''
     SELECT * FROM usergroup 
-    WHERE groupid = ?
+    WHERE id = ?
     '''
     cursor.execute(cmd,(group,))
     res = cursor.fetchall() 
@@ -816,7 +850,7 @@ def managerremoveuser(cursor,sock,userid,data,db_conn):
     user = data[1] 
     cmd = '''
     SELECT * FROM usergroup
-    WHERE group = ?
+    WHERE id = ?
     '''
     cursor.execute(cmd,(group,))
     rows = cursor.fetchall() 
@@ -825,7 +859,7 @@ def managerremoveuser(cursor,sock,userid,data,db_conn):
         send_msg(sock,"Group not Exist!")
         return 
     
-    mem = getgroupmember_(group)
+    mem = getgroupmember_(cursor,sock,group)
     if user not in mem:
         send_msg(sock,"G08+ERROR")
         send_msg(sock,"User not in the group!")
@@ -1011,10 +1045,9 @@ def serverrecievefile(cursor,sock,userid,data,db_conn):
 def getallfile_(cursor,userid,):
     cmd = '''
     SELECT storagename FROM file 
-    WHERE via = ?
-    AND terminal = ?
+    WHERE terminal = ?
     '''
-    cursor.execute(cmd,("none",userid,))
+    cursor.execute(cmd,(userid,))
     rows = cursor.fetchall() 
     res = [] 
     for row in rows:
@@ -1137,7 +1170,7 @@ def getnewfile(cursor,sock,userid,data,db_conn):
 
 
 
-def serverrecievegroupfile_(cursor,sock,userid,data,db_conn):
+def serverrecievegroupfile(cursor,sock,userid,data,db_conn):
     data = data.split("||-||")
     target = data[0] 
     address = data[1]
@@ -1145,7 +1178,7 @@ def serverrecievegroupfile_(cursor,sock,userid,data,db_conn):
     savename = str(getfilecount_(cursor)) +"-" + originname 
     savepath = FILE_PATH + savename
     # friend = getfriendslist_(cursor,sock,userid)
-    added_groups = askgroup_(userid)
+    added_groups = askgroup_(cursor,sock,userid)
     if target not in added_groups:
         send_msg(sock,"T04+ERROR")
         send_msg(sock,"You have not add this group!")
@@ -1154,7 +1187,7 @@ def serverrecievegroupfile_(cursor,sock,userid,data,db_conn):
             if not file_chunk:
                 break
     else :
-        members = getgroupmember_(target)
+        members = getgroupmember_(cursor,sock,target)
         if len(members) == 0 :
             send_msg(sock,"T04+ERROR")
             send_msg(sock,"No members in the group!")
@@ -1176,7 +1209,7 @@ def serverrecievegroupfile_(cursor,sock,userid,data,db_conn):
             current_time = str(current_time)
             cmd = '''
             INSERT INTO file(initial,via,terminal,type,status,datetime,originalname,storagename)
-            VALUES(?,?,?,?,?,?,?)
+            VALUES(?,?,?,?,?,?,?,?)
             '''
             for person in members:
                 cursor.execute(cmd,(userid,target,person,"groupfile","activate",current_time,originname,savename))
@@ -1213,12 +1246,21 @@ def getpreiviousgroupfile_(cursor,sock,userid,source,db_conn,clear = 1):
         db_conn.commit()
     return rows 
 
+def getpreviousgroupfile(cursor,sock,userid,data,db_conn):
+    source = data 
+    rows = getpreiviousgroupfile_(cursor,sock,userid,source,db_conn)
+    if len(rows) == 0:
+        send_msg(sock,"T05+ERROR")
+        send_msg(sock,"Cannot find previous group files!")
+    else :
+        send_msg(sock,"T05+SUCCESS")
+        send_msg(sock,str(rows))
 
 
-def getnewgroupfile_(cursor,sock,userid,source,db_conn,clear = 1):
+def getnewgroupfile_(cursor,sock,userid,source,db_conn):
     cmd = '''
     SELECT originalname,storagename
-    FROM flie 
+    FROM file 
     WHERE 
     via = ?
     AND terminal = ?
@@ -1226,7 +1268,7 @@ def getnewgroupfile_(cursor,sock,userid,source,db_conn,clear = 1):
     AND status = ?
     '''
     cursor.execute(cmd,(source,userid,"groupfile","activate"))
-    rows = cursor.fetcgall() 
+    rows = cursor.fetchall() 
     cmd = '''
     UPDATE file SET status = ? 
     WHERE 
@@ -1238,6 +1280,18 @@ def getnewgroupfile_(cursor,sock,userid,source,db_conn,clear = 1):
     cursor.execute(cmd,("release",source,userid,"groupfile","activate"))
     db_conn.commit() 
     return rows 
+
+
+def getnewgroupfile(cursor,sock,userid,data,db_conn):
+    source = data 
+    rows = getnewgroupfile_(cursor,sock,userid,source,db_conn)
+    if len(rows) == 0:
+        send_msg(sock,"T05+ERROR")
+        send_msg(sock,"Cannot find new group files!")
+    else :
+        send_msg(sock,"T05+SUCCESS")
+        send_msg(sock,str(rows))
+
 
 
 
@@ -1332,11 +1386,37 @@ def handle_client(client_sock): # callback function, all functions of our app sh
             if flag_bits == "T03+":
                 serversendfile(cursor,client_sock,user_id,data,db_conn)
             
-            # if flag_bits == "T03+":
-                
-
-
+            if flag_bits == "G03+":
+                setgroupmanager(cursor,client_sock,user_id,data,db_conn)
             
+            if flag_bits == "G07+":
+                manageradduser(cursor,client_sock,user_id,data,db_conn)
+            
+            if flag_bits == "G08+":
+                managerremoveuser(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "G04+":
+                addgrouprequest(cursor,client_sock,user_id,data,db_conn)
+            
+            if flag_bits == "G06+":
+                dealwithgrouprequest(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "G10+":
+                getpreviousgrouprequest(cursor,client_sock,user_id)
+
+            if flag_bits == "G11+":
+                getunreadgrouprequest(cursor,client_sock,user_id)
+
+            if flag_bits == "T04+":
+                serverrecievegroupfile(cursor,client_sock,user_id,data,db_conn)
+            
+            if flag_bits == "T05+":
+                getpreviousgroupfile(cursor,client_sock,user_id,data,db_conn)
+            
+            if flag_bits == "T06+":
+                getnewgroupfile(cursor,client_sock,user_id,data,db_conn)
+            
+
 
 
 
