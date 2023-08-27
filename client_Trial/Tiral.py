@@ -7,6 +7,89 @@ from PyQt5.QtGui import QPainter,QPixmap
 
 from logindialog_ui import Ui_LoginDialog
 from untitled_test_basic_ui import Ui_MainWindow
+import socket
+import time
+import threading  # 导入线程模块
+import os 
+# pause_event = threading.Event()
+FILE_PATH = "./filerecieving/"
+client_sock = ""
+
+
+
+############ tool functions ############## 
+def send_msg(sock, msg):
+    # 将消息编码为字节流
+    msg = msg.encode('utf-8')
+    # 创建固定长度的消息头，例如4个字节，包含消息长度
+    msg_header = f"{len(msg):<4}".encode('utf-8')
+    # 发送消息头和消息主体
+    sock.sendall(msg_header + msg)
+
+
+def recv_msg(sock):
+    msg_header = sock.recv(4).decode('utf-8').strip()
+    
+    # 检查消息头是否为空
+    if not msg_header:
+        print("Connection closed by the server")
+        sock.close()
+        return None
+
+    
+    msg_len = int(msg_header)
+    # 根据消息头指定的长度接收消息主体
+    return sock.recv(msg_len).decode('utf-8')
+
+def send_file(sock, file_chunk):
+    # 发送文件块大小
+    header = f"{len(file_chunk):<4}"
+    sock.sendall(header.encode('utf-8'))
+
+    # 发送文件块
+    sock.sendall(file_chunk)
+
+def recv_file(sock):
+    try:
+        # 设置套接字超时为10秒
+        sock.settimeout(0.1)
+
+        # 接收文件块大小
+        header = sock.recv(4).decode('utf-8').strip()
+        chunk_size = int(header)
+        
+        # 循环接收文件块直到达到期望的大小
+        chunks = []
+        bytes_received = 0
+        while bytes_received < chunk_size:
+            chunk = sock.recv(min(chunk_size - bytes_received, 4096))
+            if not chunk:
+                # Connection closed before receiving expected data
+                raise Exception("Connection closed before receiving full data.")
+            chunks.append(chunk)
+            bytes_received += len(chunk)
+
+        data = b''.join(chunks)
+
+        # 重置套接字为阻塞模式（如果需要）
+        sock.setblocking(True)
+
+        return data
+    except socket.timeout:
+        print("Socket timed out while receiving data.")
+        return None
+    except Exception as e:
+        print(f"Error while receiving data: {e}")
+        return None
+
+
+##########################################################
+
+
+
+
+
+
 
 ###########################
 import socket
@@ -255,7 +338,8 @@ class loginWindow(QDialog, Ui_LoginDialog):
 
 
 if __name__ == '__main__':
-    # global client_sock
+
+
     SERVER_IP = "127.0.0.1" 
     SERVER_PORT = 10020
     BUFFER_SIZE = 1024
@@ -268,6 +352,7 @@ if __name__ == '__main__':
         print("Connection failed! Error:", str(e))
         client_sock.close()
         exit()
+
 
 
 
