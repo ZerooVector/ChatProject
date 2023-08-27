@@ -2,7 +2,7 @@ import socket
 import time
 import threading  # 导入线程模块
 import os 
-pause_event = threading.Event()
+# pause_event = threading.Event()
 FILE_PATH = "./filerecieving/"
 
 
@@ -17,6 +17,7 @@ def send_msg(sock, msg):
 
 
 def recv_msg(sock):
+    sock.setblocking(True)
     msg_header = sock.recv(4).decode('utf-8').strip()
     
     # 检查消息头是否为空
@@ -31,13 +32,7 @@ def recv_msg(sock):
     return sock.recv(msg_len).decode('utf-8')
 
 
-# def send_file(sock,msg):
-#     # 将消息编码为字节流
-#     msg = msg
-#     # 创建固定长度的消息头，例如4个字节，包含消息长度
-#     msg_header = f"{len(msg):<4}".encode('utf-8')
-#     # 发送消息头和消息主体
-#     sock.sendall(msg_header + msg)
+
 
 def send_file(sock, file_chunk):
     # 发送文件块大小
@@ -81,17 +76,18 @@ def recv_file(sock):
         return None
 
 
-def receive_messages(client_sock,event):
+def receive_messages(client_sock):
     while True:
-        event.wait()
+        # event.wait()
         server_reply = recv_msg(client_sock)
+        print(server_reply)
         flag_bit = server_reply[0:4]
-        if flag_bit =="T03+" and server_reply != "T03+ERROR":
+        if flag_bit =="T03+" and server_reply != "T03+ERROR" and server_reply !="T03+SUCCESS":
             clientrecievefile(client_sock,server_reply)
 
-        if  server_reply is not None and len(server_reply)>0:
+        # elif  server_reply is not None and len(server_reply)>0:
             
-            print(server_reply)
+        #     print(server_reply)
 
 def send_messages(client_sock):
     while True:
@@ -130,7 +126,7 @@ def clientsendfile(client_sock,msg_to_send):
 def clientrecievefile(client_sock,data):
     data = data[4:]
     name = data 
-    savepath = FILE_PATH + name
+    savepath = FILE_PATH 
     if not os.path.exists(savepath):
         while True :
             file_chunk = recv_file(client_sock)  # recieve a chunk
@@ -139,13 +135,14 @@ def clientrecievefile(client_sock,data):
                 break
         print(f"File {savepath} does not exist!")  # client checks the file is or not exist 
         return
+    savepath = FILE_PATH + name 
     with open(savepath,"wb") as file :
         while True :
             file_chunk = recv_file(client_sock)  # recieve a chunk
             if not file_chunk:
                 break
             file.write(file_chunk)
-            print("recieving...")
+            # print("recieving...")
 
 
 
@@ -166,8 +163,8 @@ def main():
 
     # 创建并启动一个线程来接收服务端消息
     
-    pause_event.set()
-    recv_thread = threading.Thread(target=receive_messages, args=(client_sock, pause_event))
+    # pause_event.set()
+    recv_thread = threading.Thread(target=receive_messages, args=(client_sock,))
     recv_thread.daemon = True  # 设置为守护线程，这样当主线程退出时，接收线程也会退出
     recv_thread.start()
 
