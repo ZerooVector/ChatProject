@@ -7,8 +7,8 @@ import sqlite3
 import datetime as dt 
 import os 
 
-DB_PATH = "./server.db"
-FILE_PATH = "./filefolder/"
+DB_PATH = "./serverLogic/server.db"
+FILE_PATH = "./serverLogic/filefolder/"
 
 current_online = []
 
@@ -20,8 +20,8 @@ current_online = []
 def message_update_detector(params): # detector the message to someone
     global users_data
 
-    users_data = pd.read_csv("users.csv")
-    messages_data = pd.read_csv("messages.csv")
+    # users_data = pd.read_csv("users.csv")
+    # messages_data = pd.read_csv("messages.csv")
 
     key_list = list(users_data["key"]) # read all of the key 
 
@@ -233,13 +233,13 @@ def addfriendrequest(cursor,sock,data,userid,db_conn):
             else :
                 ct = dt.datetime.now()
                 cmd = '''
-                INSERT INTO message(initial,via,teriminal,type,unreadflag,datetime)
-                VALUES(?,?,?,?,?,?)
+                INSERT INTO message(initial,via,terminal,type,unreadflag,datetime,content)
+                VALUES(?,?,?,?,?,?,?)
                 '''
-                cursor.execute(cursor,(userid,"none",add_request,"friendrq","activate",ct))
+                cursor.execute(cmd,(userid,"none",add_request,"friendrq","activate",ct,"friendrq"))
                 db_conn.commit() 
                 send_msg(sock,"F01+SUCCESS")
-                send_msg(sock,"Please wait another user to check your request!")
+                send_msg(sock,"Please wait another user to check 5your request!")
 
 
 def getpreviousrequest_(cursor,sock,userid):
@@ -286,14 +286,13 @@ def getunreadrequest_(cursor,sock,userid):
 
 def getunreadrequest(cursor,sock,userid,):
     rows = getunreadrequest_(cursor,sock,userid,)
-    rows = str(rows)
+    # rows = str(rows)
     if len(rows) == 0:
         send_msg(sock,"F04+ERROR")
         send_msg(sock,"You have checked all of the request!")
     else :
         send_msg(sock,"F04+SUCCESS")
-        send_msg(sock,rows)
-
+        send_msg(sock,str(rows))
 
 def dealwithrequest(cursor,sock,data,userid,db_conn):
     data = data.split("||-||")
@@ -301,11 +300,11 @@ def dealwithrequest(cursor,sock,data,userid,db_conn):
     reply = data[1] 
     cmd = '''
     SELECT * FROM message 
-    initial = ?
-    via = ?
-    terminal = ?
-    type = ?
-    unreadflag = ?
+    WHERE initial = ?
+    AND via = ?
+    AND terminal = ?
+    AND type = ?
+    AND unreadflag = ?
     '''
     cursor.execute(cmd,(source,"none",userid,"friendrq","activate"))
     rows = cursor.fetchall() 
@@ -331,7 +330,7 @@ def dealwithrequest(cursor,sock,data,userid,db_conn):
         VALUES(?,?)
         '''
         cursor.execute(cmd,(source,userid))
-        db_conn.commit(_)
+        db_conn.commit()
         cursor.execute(cmd,(userid,source))
         db_conn.commit() 
         send_msg(sock,"F05+SUCCESS")
@@ -413,6 +412,13 @@ def creategroup(cursor,sock,data,userid,db_conn): # G00;test;[A00,A01]
             for item in members:
                 cursor.execute(cmd,(input_id,item,))
                 db_conn.commit()
+            cmd = '''
+            INSERT INTO groupmanager(groupid,userid)
+            VALUES(?,?)
+            '''
+            cursor.execute(cmd,(input_id,userid))
+            db_conn.commit()
+
             send_msg(sock,"G00+SUCCESS")
             send_msg(sock,"Successfully Create a Group!")
 
@@ -505,14 +511,14 @@ def getpreviousmessage(cursor,sock,userid,data,db_conn,N = 1000):
     source = data 
     rows = getpreviousmessage_(cursor,sock,userid,source,db_conn,clear = 1)
     rows = rows[-N:]
-    rows = str(rows)
+    # rows = str(rows)
     if len(rows) == 0 :
         send_msg(sock,"C01+ERROR")
         send_msg(sock,"No chat History!")
     else :
         rows = str(rows)
         send_msg(sock,"C01+SUCCESS")
-        send_msg(sock,rows)
+        send_msg(sock,str(rows) )
 
 
 
@@ -555,7 +561,7 @@ def getnewmessage(cursor,sock,userid,data,db_conn):
     else :
         rows = str(rows)
         send_msg(sock,"C02+SUCCESS")
-        send_msg(sock,rows)
+        send_msg(sock,str(rows))
 
 
 def getgroupmember_(cursor,sock,groupid):
@@ -845,12 +851,12 @@ def sendgroupmessage(cursor,sock,userid,data,db_conn):
     data = data.split("||-||")
     target = data[0]
     content = data[1] 
-    added_groups = askgroup_(userid)
+    added_groups = askgroup_(cursor,sock,userid)
     if target not in added_groups:
         send_msg(sock,"C03+ERROR")
         send_msg(sock,"You have not add this group!")
     else :
-        members = getgroupmember_(target)
+        members = getgroupmember_(cursor,sock,target)
         if len(members) == 0 :
             send_msg(sock,"C03+ERROR")
             send_msg(sock,"No members in the group!")
@@ -858,7 +864,7 @@ def sendgroupmessage(cursor,sock,userid,data,db_conn):
             current_time = dt.datetime.now()
             current_time = str(current_time)
             cmd = '''
-            INSERT INTO message(initial,via,terminal,type,unreading,datetime,content)
+            INSERT INTO message(initial,via,terminal,type,unreadflag,datetime,content)
             VALUES(?,?,?,?,?,?,?)
             '''
             for person in members:
@@ -874,9 +880,9 @@ def getgrouppreviousmessage_(cursor,sock,userid,groupid,db_conn,clear = 1):
     SELECT initial,content FROM message
     WHERE 
     via = ?
-    type = ?
-    datatime < ?
-    terminal = ?
+    AND type = ?
+    AND datetime < ?
+    AND terminal = ?
     '''
     cursor.execute(cmd,(groupid,"chat",current_time,userid))
     rows = cursor.fetchall()
@@ -886,16 +892,16 @@ def getgrouppreviousmessage_(cursor,sock,userid,groupid,db_conn,clear = 1):
         SET unreadflag = ?
         WHERE 
         via = ?
-        type = ?
-        datatime < ?
-        terminal = ?
+        AND type = ?
+        AND datetime < ?
+        AND terminal = ?
         '''
         cursor.execute(cmd,("release",groupid,"chat",current_time,userid))
         db_conn.commit()
-    res = [] 
-    for row in rows:
-        res.append(row[0])
-    return res 
+    # res = [] 
+    # for row in rows:
+    #     res.append(row[0])
+    return rows
 
 def getgrouppreviousmessage(cursor,sock,userid,data,db_conn,N = 1000):
     groupid = data 
@@ -915,9 +921,9 @@ def getgroupnewmessage_(cursor,sock,userid,source,db_conn):
     SELECT initial, content FROM message
     WHERE
     via = ?
-    type = ?
-    unreadflag = ?
-    terminal = ?
+    AND type = ?
+    AND unreadflag = ?
+    AND terminal = ?
     '''
     cursor.execute(cmd,(source,"chat","activate",userid))
     rows = cursor.fetchall()
@@ -926,22 +932,22 @@ def getgroupnewmessage_(cursor,sock,userid,source,db_conn):
     SET unreadflag = ?
     WHERE
     via = ?
-    type = ?
-    unreadflag = ?
-    terminal = ?
+    AND type = ?
+    AND unreadflag = ?
+    AND terminal = ?
     '''
     cursor.execute(cmd,("release",source,"chat","activate",userid))  # release the flag
     db_conn.commit()
-    res = [] 
-    for row in rows:
-        res.append(row[0])
+    # res = [] 
+    # for row in rows:
+    #     res.append(row[0])
     return rows 
 
 
 
 def getgroupnewmessage(cursor,sock,userid,data,db_conn):
     groupid = data 
-    rows = getnewmessage_(cursor,sock,userid,groupid,db_conn)
+    rows = getgroupnewmessage_(cursor,sock,userid,groupid,db_conn)
     if len(rows) == 0 :
         send_msg(sock,"C05+ERROR")
         send_msg(sock,"No new message!")
@@ -1025,6 +1031,8 @@ def serversendfile(cursor,sock,userid,data,db_conn):
     else :
         savepath = FILE_PATH +  strname 
         if not os.path.exists(savepath):
+            send_msg(sock,"T03+ERROR")
+            send_msg(sock,"File not Exist!")
             print(f"File {savepath} does not exist!")  # client checks the file is or not exist 
             return
     # pause_event.clear()
@@ -1042,8 +1050,12 @@ def serversendfile(cursor,sock,userid,data,db_conn):
     
             file_chunk = file.read(4096*2)
             while file_chunk:
-                send_file(savepath,file_chunk)
+                send_file(sock,file_chunk)
                 file_chunk = file.read(4096*2) 
+                print("sending...")
+        time.sleep(0.15)
+        send_msg(sock,"T03+SUCCESS")
+        send_msg(sock,"Successfully Send the file!")
 
 
 
@@ -1083,14 +1095,14 @@ def getpreviousfile(cursor,sock,userid,data,db_conn):
         send_msg(sock,"Cannot find previous files!")
     else :
         send_msg(sock,"T00+SUCCESS")
-        send_msg(sock,rows)
+        send_msg(sock,str(rows))
 
     
 
-def getnewfile_(cursor,sock,userid,source,data,db_conn):
+def getnewfile_(cursor,sock,userid,source,db_conn):
     cmd = '''
     SELECT originalname,storagename
-    FROM flie 
+    FROM file 
     WHERE initial = ?
     AND via = ?
     AND terminal = ?
@@ -1098,7 +1110,7 @@ def getnewfile_(cursor,sock,userid,source,data,db_conn):
     AND status = ?
     '''
     cursor.execute(cmd,(source,"none",userid,"chatfile","activate"))
-    rows = cursor.fetcgall() 
+    rows = cursor.fetchall() 
     cmd = '''
     UPDATE file SET status = ? 
     WHERE initial = ?
@@ -1121,7 +1133,7 @@ def getnewfile(cursor,sock,userid,data,db_conn):
         send_msg(sock,"Cannot find previous files!")
     else :
         send_msg(sock,"T01+SUCCESS")
-        send_msg(sock,rows)
+        send_msg(sock,str(rows))
 
 
 
@@ -1267,10 +1279,19 @@ def handle_client(client_sock): # callback function, all functions of our app sh
                 searchuser(cursor,client_sock,data)
 
             if flag_bits == "F01+":
-                addfriend(cursor,client_sock,data,user_id,db_conn)
+                addfriendrequest(cursor,client_sock,data,user_id,db_conn)
 
             if flag_bits == "F02+":
                 getfriendslist(cursor,client_sock,user_id)
+
+            if flag_bits == "F03+":
+                getpreviousrequest(cursor,client_sock,user_id)
+
+            if flag_bits == "F04+":
+                getunreadrequest(cursor,client_sock,user_id)
+            
+            if flag_bits == "F05+":
+                dealwithrequest(cursor,client_sock,data,user_id,db_conn)
             
             if flag_bits == "C00+":
                 sendmessage(cursor,client_sock,user_id,data,db_conn)
@@ -1301,6 +1322,21 @@ def handle_client(client_sock): # callback function, all functions of our app sh
 
             if flag_bits == "T02+":
                 serverrecievefile(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "T00+":
+                getpreviousfile(cursor,client_sock,user_id,data,db_conn)
+            
+            if flag_bits == "T01+":
+                getnewfile(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "T03+":
+                serversendfile(cursor,client_sock,user_id,data,db_conn)
+            
+            # if flag_bits == "T03+":
+                
+
+
+            
 
 
 
