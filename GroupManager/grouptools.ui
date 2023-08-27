@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>GroupTools</class>
+ <widget class="QDialog" name="GroupTools">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>220</width>
+    <height>270</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QWidget" name="verticalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>30</y>
+     <width>160</width>
+     <height>218</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="GroupTools_2">
+    <item>
+     <widget class="QPushButton" name="ManagerList">
+      <property name="text">
+       <string>管理员名单</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="AddManager">
+      <property name="text">
+       <string>添加管理员</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="DecreaseManager">
+      <property name="text">
+       <string>减少管理员 </string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="PeopleGroup">
+      <property name="text">
+       <string>群成员名单</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="AddPeople">
+      <property name="text">
+       <string>添加群成员</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="DecreasePeople">
+      <property name="text">
+       <string>移除群成员</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
