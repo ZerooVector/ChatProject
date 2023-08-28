@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="f2b57e01-6ec6-4271-92a4-5ee8577e7991" name="chatgpt">
+        <fileTransfer rootFolder="/home/u220220942531/pycharm_project/chatgpt" accessType="SFTP" host="202.201.1.198" port="20343" sshConfigId="a49568d7-d27e-4c20-8730-6667a02689a3" sshConfig="u220220942531@202.201.1.198:20343 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
