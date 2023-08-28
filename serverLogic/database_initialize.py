@@ -1,6 +1,6 @@
 import sqlite3 as sql 
 
-DATABASE_PATH = "./server.db"
+DATABASE_PATH = "./serverLogic/server.db"
 
 db_conn = sql.connect(DATABASE_PATH)
 print("Sucessfully Connect!")
@@ -75,16 +75,26 @@ db_cursor = db_conn.cursor()
 # )
 # '''
 
+# sql_command = '''
+# CREATE TABLE groupmanager(
+# id INTEGER PRIMARY KEY AUTOINCREMENT ,
+# groupid TEXT NOT NULL ,
+# userid TEXT NOT NULL 
+# )
+# '''
+
 sql_command = '''
-CREATE TABLE groupmanager(
-id INTEGER PRIMARY KEY AUTOINCREMENT ,
-groupid TEXT NOT NULL ,
-userid TEXT NOT NULL 
-)
+SELECT initial, content FROM message
+    WHERE
+    via = ?
+    AND type = ?
+    AND unreadflag = ?
+    AND terminal = ?
 '''
 
-
-db_cursor.execute(sql_command)
+db_cursor.execute(sql_command,("G0","chat","activate","A00"))
+res = db_cursor.fetchall() 
+print(res)
 db_conn.commit() 
 print("Successfully Commit!")
 print
