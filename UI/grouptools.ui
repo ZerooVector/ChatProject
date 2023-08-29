@@ -31,16 +31,9 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="AddManager">
+     <widget class="QPushButton" name="ChangeManager">
       <property name="text">
-       <string>添加管理员</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="DecreaseManager">
-      <property name="text">
-       <string>减少管理员 </string>
+       <string>更改管理员</string>
       </property>
      </widget>
     </item>
@@ -52,16 +45,9 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="AddPeople">
+     <widget class="QPushButton" name="ChangePeople">
       <property name="text">
-       <string>添加群成员</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="DecreasePeople">
-      <property name="text">
-       <string>移除群成员</string>
+       <string>更改群成员</string>
       </property>
      </widget>
     </item>
