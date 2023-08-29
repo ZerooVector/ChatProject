@@ -15,7 +15,15 @@ class GroupManager(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None):
         super(GroupManager, self).__init__(parent)
         self.setupUi(self)
+        self.intoGroupTools()
+    def intoGroupTools(self): #设置槽函数
+        self.show()
+        self.ManageGroup.clicked.connect(self.btnClicked)
 
+    def btnClicked(self): #点击后所发生的事
+        self.grouptools = GroupTools()
+        self.grouptools.show()
+        self.grouptools.exec_()
 
     def center(self):  # 定义一个函数使得窗口居中显示
         # 获取屏幕坐标系
@@ -26,10 +34,40 @@ class GroupManager(QMainWindow, Ui_MainWindow):
         newTop = (screen.height() - size.height()) / 2
         self.move(int(newLeft), int(newTop))
 
+
+
 class GroupTools(QDialog, Ui_GroupTools):
     def __init__(self, parent=None):
         super(GroupTools, self).__init__(parent)
         self.setupUi(self)
+        self.intoOthers()
+
+    def intoOthers(self):  # 设置槽函数
+        self.show()
+        self.ManagerList.clicked.connect(self.MLbtnClicked) #管理员列表
+        self.PeopleGroup.clicked.connect(self.PGbtnClicked) #群成员列表
+        self.ChangeManager.clicked.connect(self.CMbtnClicked) #改变群管理员
+        self.ChangePeople.clicked.connect(self.CPbtnClicked) #改变群成员
+    def MLbtnClicked(self):  # 点击后所发生的事
+        self.managerlist = ManagerList()
+        self.managerlist.show()
+        self.managerlist.exec_()
+
+    def PGbtnClicked(self):
+        self.peoplegroup = PeopleList()
+        self.peoplegroup.show()
+        self.peoplegroup.exec_()
+
+    def CMbtnClicked(self):
+        self.changemanager = ChangeManager()
+        self.changemanager.show()
+        self.changemanager.exec_()
+
+    def CPbtnClicked(self):
+        self.changepeople = ChangePeople()
+        self.changepeople.show()
+        self.changepeople.exec_()
+
 
 class PeopleList(QDialog, Ui_PeopleList):
     def __init__(self, parent=None):

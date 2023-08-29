@@ -30,7 +30,7 @@
      <enum>QTabWidget::Triangular</enum>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -348,6 +348,19 @@
       </property>
       <property name="text">
        <string>管理群</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="ChangeInformation">
+      <property name="geometry">
+       <rect>
+        <x>700</x>
+        <y>360</y>
+        <width>89</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>修改个人信息</string>
       </property>
      </widget>
     </widget>
