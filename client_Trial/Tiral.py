@@ -2,7 +2,8 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QDialog,QFileDialog
 from PyQt5 import uic, QtCore
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QListWidgetItem, QTreeWidgetItem, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView
+from PyQt5.QtWidgets import QListWidgetItem, QTreeWidgetItem, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QMessageBox
+
 from datetime import datetime
 # from PyQt5.QtCore import *QAbstractItemView.SingleSelection
 from PyQt5.QtGui import QPainter,QPixmap
@@ -10,6 +11,9 @@ from PyQt5.QtGui import QPainter,QPixmap
 
 from logindialog_ui import Ui_LoginDialog
 from untitled_test_basic_ui import Ui_MainWindow
+from register_ui import Ui_Register 
+from information_ui import Ui_Information
+
 
 ###########################
 import socket
@@ -129,12 +133,12 @@ class customAddContactItem(QTreeWidgetItem):
         self.hbox = QHBoxLayout()
         self.hbox.addWidget(self.avatorLabel)
         self.hbox.addWidget(self.nameLabel)
-        self.hbox.addWidget(self.deleteContactBtn)
+        self.hbox.addWidget(self.addContactBtn)
         self.hbox.addStretch(1)     # 抄来的 不知道什么意思
         # 布局添加到widget
         self.widget.setLayout(self.hbox)
 
-
+# 好友以及群组界面的Item填充
 class customContactItem(QTreeWidgetItem):
     
     # 规定头像大小为（50,50）
@@ -241,11 +245,12 @@ class customContactQlistWidgetItem(QListWidgetItem):
 # 聊天列表界面的Item填充
 class customChatItem(QListWidgetItem):
     
-    mg_size = (50, 50)
-    def __init__(self, name, img, all_msg):
+    img_size = (50, 50)
+    def __init__(self, name, img, all_msg, isGroup = False):
         super().__init__()
         self.all_msg = all_msg
         self.name = name
+        self.isGroup = isGroup
         self.widget = QWidget()
         # 设置图像label
         self.avatorLabel = QLabel()
@@ -260,8 +265,9 @@ class customChatItem(QListWidgetItem):
         temp = self.last_msg[2] if len(self.last_msg[2]) < 10 else self.last_msg[2][:10] + "..."
         self.lastMsgLabel.setText(temp)
         # 未睹消息
-        self.unreadMsgLabel = QLabel()
-        self.unreadMsgLabel.setText(str(self.numUnread()))
+        if isGroup:
+            self.isGourpLabel = QLabel()
+            self.isGourpLabel.setText("Group")
         # 设置item_widget的布局，写成函数便于继承重写
         self.set_distribution()
         # 设置自定义sizehint，否则无法显示 抄来的 不知道为什么
@@ -307,7 +313,8 @@ class customChatItem(QListWidgetItem):
         self.hbox = QHBoxLayout()
         self.hbox.addWidget(self.avatorLabel)
         self.hbox.addWidget(self.vwidget)
-        self.hbox.addWidget(self.unreadMsgLabel)
+        if self.isGroup:
+            self.hbox.addWidget(self.isGroupLabel)
         
         # 布局添加到widget
         self.widget.setLayout(self.hbox)
@@ -412,6 +419,10 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.sendFileBtn.clicked.connect(self.sendFile)
         # 槽函数 发送已编辑的消息
         self.chatSendBtn.clicked.connect(self.chatSend)
+        # 槽函数   修改个人信息
+        self.ChangeInformation.clicked.connect(self.informationClicked)
+        #槽函数 上传头像
+        self.uploadAvatarBtn.clicked.connect(self.uploadAvatar)
         # ------------以上为Ui设置
 
         # 获取个人信息
@@ -422,6 +433,10 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.loadContactsList()
         self.showMsgPage.hide()
     
+    def informationClicked(self):
+        self.information = Information()
+        self.information.show()
+        self.information.exec_()
     # 关于Browser的一些补充设置
     def setChatMsgBrowser(self):
         self.chatMsgBrowser.setWidgetResizable(True)
@@ -446,7 +461,31 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     # 获取当前用户信息的逻辑    
     def loadUserInfo(self, userName):
         # UserInfo格式 【用户名， 昵称， 密码， 密保问题， 密保答案，ip信息 】
-        self.userInfo = ["123", "Moriningstar", "123", "question", "ans", "ip"]
+        #还期望获得个人用户头像 set as "avator.jpg" or sth
+        
+        self.userInfo ={\
+            "avatarInfo": "./pic.jpg", \
+            "userNameInfo" : "123", \
+            "nickNameInfo": "Morningstar", \
+            "passwordInfo": "123", \
+            "secureQuestionInfo": "question" * 10, \
+            "secureAnswerInfo": "ans" * 10, \
+            "ipInfo" : "ip"
+        }
+        self.avatarInfo.setPixmap(QPixmap(self.userInfo["avatarInfo"]).scaled(300, 300))
+        self.userNameInfo.setText(self.userInfo["userNameInfo"])
+        self.nickNameInfo.setText(self.userInfo["nickNameInfo"])
+        self.passwordInfo.setText(self.userInfo["passwordInfo"])
+        self.secureQuestionInfo.textCursor().insertText(self.userInfo["secureQuestionInfo"])
+        self.secureAnswerInfo.textCursor().insertText(self.userInfo["secureAnswerInfo"])
+        self.ipInfo.setText(self.userInfo["ipInfo"])
+
+    # 用户向服务器上传头像
+    def uploadAvatar(self):
+        file_dialog = QFileDialog()
+        file_path , _ = file_dialog.getOpenFileName(self, "选择文件")
+        if file_path:
+            pass
 
     # 点击按钮后发送消息
     def chatSend(self):
@@ -664,12 +703,19 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         #     self.chatMsgList.addItem(item)
         # # self.chatMsgList.sortItems(key=lambda item: returnTime(item) )
 
+    #在这个函数获得所有的好友
     def loadContactsList(self):
         friendFather= self.contactsList.topLevelItem(0)
         groupFather= self.contactsList.topLevelItem(1)
         friendFather.setExpanded(True)
         groupFather.setExpanded(True)
+        #清空所有现有的内容
+        while friendFather.childCount() > 0:
+            friendFather.child(0).deleteContact()
+        while groupFather.childCount() > 0:
+            groupFather.child(0).deleteContact()
 
+        # 以下ls需要从服务器获得，要求是全部的
         lsFriend = [("A", "./Edge.jpg"),
                     ("B", "./VS Code.jpg")]
         lsGroup = [("A", "./Edge.jpg"),
@@ -684,16 +730,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             groupFather.addChild(item) 
             self.contactsList.setItemWidget(item, 0, item.widget)
 
-    #在这个函数获得所有的好友
-    def loadContactList(self):
-        self.contactFriendList.clear()
-        lsFriend = [("A", "./Edge.jpg"),
-                    ("B", "./VS Code.jpg")]
-        friend_size = 2
-        for i in range(friend_size):
-            item = customContactQlistWidgetItem("A", img="./pic.jpg")
-            self.contactFriendList.addItem(item)
-            self.contactFriendList.setItemWidget(item, item.widget)
+
 
 # 更新窗口的触发器
 class mainWindowUpdater:
@@ -706,22 +743,31 @@ class mainWindowUpdater:
     def updateMainWindow(self):
         print("updateCalled")
         # 在这里写更新的接口，接收服务端的某个信号，说明该用户与某些用户的消息更新了，给定参数names
+        # if updeteChats():
         names = ["A", "B", "C"]
         self.mainwindow.reLoadChatList(names)
+        
+        # if updateContacts():
+        
+        self.mainwindow.loadContactsList()
+
         print("updateClosed")
 
         
-
+# 登录界面
 class loginWindow(QDialog, Ui_LoginDialog):
     def __init__(self, parent=None):
         super(loginWindow, self).__init__(parent)
-        
         self.setupUi(self)
         self.loginBtn.clicked.connect(self.match)
-
+        self.registerBtn.clicked.connect(self.intoRegister)
+        
+    def intoRegister(self):
+        self.regist = Register()
+        self.regist.show()
+        self.regist.exec_()
+    
     def match(self):
-        self.userName = self.usrLineEdit.text()
-
         # userid = self.usrLineEdit.text() 
         # password = self.pwdLineEdit.text() 
         # msg = "L01+"
@@ -740,13 +786,56 @@ class loginWindow(QDialog, Ui_LoginDialog):
             global USERNAME
             USERNAME = self.usrLineEdit.text()
             self.accept()
-            
+            self.userName = USERNAME
 
         else :
             self.pwdLineEdit.clear()
             self.pwdLineEdit.setFocus()
 
+# 注册界面
+class Register(QDialog, Ui_Register):
+    def __init__(self, parent=None):
+        super(Register, self).__init__(parent)
+        self.setupUi(self)
+        self.RegisterBtn.clicked.connect(self.RBtnClicked)
 
+    def RBtnClicked(self):
+        if self.UsernameLineEdit.text() == "" or self.PasswordLineEdit.text() == "" or \
+            self.NicknameLineEdit.text() == "" or self.ConfirmLineEdit.text() == "" :
+            msg_box = QMessageBox(QMessageBox.Critical, '错误', '所填内容不得为空')
+            msg_box.exec_()
+        elif self.PasswordLineEdit.text() != self.ConfirmLineEdit.text():
+            msg_box = QMessageBox(QMessageBox.Critical, '错误', '两次输入的密码不一致')
+            msg_box.exec_()
+        else:
+            # 此处需添加将用户信息录入数据库的函数 !!!
+            msg_box = QMessageBox(QMessageBox.Critical, '正确', '注册成功')
+            msg_box.exec_()
+
+            self.close()
+
+class Information(QDialog, Ui_Information):
+    def __init__(self, parent = None):
+        super(Information, self).__init__(parent)
+        self.setupUi(self)
+        self.ChangeNickname.setPlaceholderText("旧昵称")
+        self.GoBtn.clicked.connect(self.GoClicked)
+
+    def GoClicked(self):
+        if self.OldPassword.text() == "" or self.NewPassword.text() == "" or self.ConfirmLineEdit.text() == "" :
+            msg_box = QMessageBox(QMessageBox.Critical, '错误', '所填密码不得为空')
+            msg_box.exec_()
+        elif self.OldPassword.text() != "123":
+            msg_box = QMessageBox(QMessageBox.Critical, '错误', '所填旧密码错误')
+            msg_box.exec_()
+        elif self.NewPassword.text() != self.ConfirmLineEdit.text() :
+            msg_box = QMessageBox(QMessageBox.Critical, '错误', '新的密码两次输入不一致')
+            msg_box.exec_()
+        else :
+            #此处需添加修改数据库中用户信息的函数
+            msg_box = QMessageBox(QMessageBox.Information, '正确', '修改成功')
+            msg_box.exec_()
+            self.close()
 
 if __name__ == '__main__':
     # # global client_sock
