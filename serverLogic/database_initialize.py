@@ -83,16 +83,20 @@ db_cursor = db_conn.cursor()
 # )
 # '''
 
-sql_command = '''
-SELECT initial, content FROM message
-    WHERE
-    via = ?
-    AND type = ?
-    AND unreadflag = ?
+cmd = '''
+    UPDATE FILE 
+    SET status = ?
+    WHERE initial = ?
+    AND via = ?
     AND terminal = ?
-'''
+    AND type = ?
+    AND status = ?
+    '''
+db_cursor.execute(cmd,("release","A00","none","none","facefile","check"))
+    # db_conn.commit()
+    
 
-db_cursor.execute(sql_command,("G0","chat","activate","A00"))
+# db_cursor.execute(cmd,("A00","GPT3.5","GPT3.5","A00","activate")) 
 res = db_cursor.fetchall() 
 print(res)
 db_conn.commit() 
