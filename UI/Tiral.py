@@ -16,7 +16,7 @@ from changepeople_ui import Ui_ChangePeople
 from changemanager_ui import Ui_ChangeManager
 from register_ui import Ui_Register
 from information_ui import Ui_Information
-from qt_material import apply_stylesheet
+# from qt_material import apply_stylesheets
 
 ###########################
 import socket
@@ -315,9 +315,9 @@ class loginWindow(QDialog, Ui_LoginDialog):
         self.registerBtn.clicked.connect(self.intoRegister)
         
     def intoRegister(self):
-    	self.regist = Register()
-    	self.regist.show()
-    	self.regist.exec_()
+        self.regist = Register()
+        self.regist.show()
+        self.regist.exec_()
     
     def match(self):
         # userid = self.usrLineEdit.text() 
@@ -335,6 +335,8 @@ class loginWindow(QDialog, Ui_LoginDialog):
         if self.usrLineEdit.text() == "123" and \
             self.pwdLineEdit.text() == "123":
             self.matched = True
+            global USERNAME
+            USERNAME = self.usrLineEdit.text()
             self.accept()
             
 
