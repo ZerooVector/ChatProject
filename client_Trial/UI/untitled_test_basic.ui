@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
+    <width>996</width>
     <height>600</height>
    </rect>
   </property>
@@ -17,8 +17,8 @@
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>0</y>
+      <x>10</x>
+      <y>10</y>
       <width>1000</width>
       <height>600</height>
      </rect>
@@ -30,9 +30,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-
      <number>0</number>
-
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -243,37 +241,11 @@
             <string>发送文件</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_3">
-           <property name="geometry">
-            <rect>
-             <x>200</x>
-             <y>350</y>
-             <width>89</width>
-             <height>31</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>发送语音</string>
-           </property>
-          </widget>
-          <widget class="QPushButton" name="pushButton_4">
-           <property name="geometry">
-            <rect>
-             <x>310</x>
-             <y>350</y>
-             <width>89</width>
-             <height>31</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>语音转文字</string>
-           </property>
-          </widget>
-          <widget class="QPushButton" name="pushButton_5">
+          <widget class="QPushButton" name="VoiceCallBtn">
            <property name="geometry">
             <rect>
              <x>420</x>
-             <y>350</y>
+             <y>320</y>
              <width>89</width>
              <height>31</height>
             </rect>
@@ -282,15 +254,41 @@
             <string>语音通话</string>
            </property>
           </widget>
+          <widget class="QPushButton" name="TransformBtn">
+           <property name="geometry">
+            <rect>
+             <x>310</x>
+             <y>320</y>
+             <width>89</width>
+             <height>31</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>语音转文字</string>
+           </property>
+          </widget>
+          <widget class="QPushButton" name="sendVoiceBtn">
+           <property name="geometry">
+            <rect>
+             <x>200</x>
+             <y>320</y>
+             <width>89</width>
+             <height>31</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>语音</string>
+           </property>
+          </widget>
           <zorder>chatMsgEdit</zorder>
           <zorder>chatFuncList</zorder>
           <zorder>chatSendBtn</zorder>
           <zorder>chatMsgBrowser</zorder>
           <zorder>pushButton</zorder>
           <zorder>sendFileBtn</zorder>
-          <zorder>pushButton_3</zorder>
-          <zorder>pushButton_4</zorder>
-          <zorder>pushButton_5</zorder>
+          <zorder>VoiceCallBtn</zorder>
+          <zorder>TransformBtn</zorder>
+          <zorder>sendVoiceBtn</zorder>
          </widget>
         </item>
        </layout>
@@ -434,7 +432,7 @@
      <widget class="QGroupBox" name="showContactPage">
       <property name="geometry">
        <rect>
-        <x>280</x>
+        <x>274</x>
         <y>0</y>
         <width>621</width>
         <height>550</height>
@@ -721,7 +719,7 @@
      <widget class="QPushButton" name="pushButton_2">
       <property name="geometry">
        <rect>
-        <x>150</x>
+        <x>155</x>
         <y>450</y>
         <width>97</width>
         <height>32</height>
@@ -766,7 +764,7 @@
       <property name="geometry">
        <rect>
         <x>240</x>
-        <y>10</y>
+        <y>12</y>
         <width>21</width>
         <height>32</height>
        </rect>
@@ -841,8 +839,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1000</width>
-     <height>22</height>
+     <width>996</width>
+     <height>29</height>
     </rect>
    </property>
   </widget>
