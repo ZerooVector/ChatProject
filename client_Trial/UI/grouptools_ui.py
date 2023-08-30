@@ -12,9 +12,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_GroupTools(object):
     def setupUi(self, GroupTools):
         GroupTools.setObjectName("GroupTools")
-        GroupTools.resize(220, 270)
+        GroupTools.resize(220, 279)
         self.verticalLayoutWidget = QtWidgets.QWidget(GroupTools)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(30, 30, 160, 218))
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(30, 30, 160, 224))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.GroupTools_2 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.GroupTools_2.setContentsMargins(0, 0, 0, 0)
