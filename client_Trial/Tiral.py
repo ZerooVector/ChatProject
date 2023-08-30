@@ -15,15 +15,19 @@ from UI.register_ui import Ui_Register
 from UI.information_ui import Ui_Information
 from UI.Voicecall_ui import Ui_Voicecall
 
+
 ###########################
 import socket
 import time
 import threading  # 导入线程模块
 import os 
+import ast 
 # pause_event = threading.Event()
-FILE_PATH = "./filerecieving/"
+FILE_PATH = "/home/syh/MyProjects/chatsavefile/"
+AVATAR_PATH = "/home/syh/MyProjects/avatarsave/"
 client_sock = ""
-
+STOP_UPDATE  = False
+AVATAR_DICT = {}
 
 
 ############ tool functions ############## 
@@ -89,7 +93,75 @@ def recv_file(sock):
     except Exception as e:
         print(f"Error while receiving data: {e}")
         return None
+    
+#################### Secondary functions ###############
 
+def clientsendfile(client_sock,msg_to_send):
+    
+    msg = msg_to_send[4:]
+    msg = msg.split("||-||")
+    target = msg[0] 
+    address = msg[1]
+    
+    if not os.path.exists(address):
+        print(f"File {address} does not exist!")  # client checks the file is or not exist 
+        return
+    # pause_event.clear()
+    
+    
+    send_msg(client_sock,msg_to_send)
+
+    with open(address,"rb") as file :
+    
+        file_chunk = file.read(4096*2)
+        while file_chunk:
+            send_file(client_sock,file_chunk)
+            file_chunk = file.read(4096*2)
+
+
+def clientrecievefile(client_sock,data):
+    data = data[4:]
+    name = data 
+    savepath = FILE_PATH 
+    if not os.path.exists(savepath):
+        while True :
+            file_chunk = recv_file(client_sock)  # recieve a chunk
+            if not file_chunk:
+                file_chunk = ""
+                break
+        print(f"File {savepath} does not exist!")  # client checks the file is or not exist 
+        return
+    savepath = FILE_PATH + name 
+    with open(savepath,"wb") as file :
+        while True :
+            file_chunk = recv_file(client_sock)  # recieve a chunk
+            if not file_chunk:
+                break
+            file.write(file_chunk)
+            # print("recieving...")
+    print("Finish recieve file!")
+
+def ClientDownloadAvatar(client_sock,data,avatarname):
+    data = data[4:]
+    name = data 
+    savepath = AVATAR_PATH
+    if not os.path.exists(savepath):
+        while True :
+            file_chunk = recv_file(client_sock)  # recieve a chunk
+            if not file_chunk:
+                file_chunk = ""
+                break
+        print(f"File {savepath} does not exist!")  # client checks the file is or not exist 
+        return
+    savepath = AVATAR_PATH + avatarname
+    with open(savepath,"wb") as file :
+        while True :
+            file_chunk = recv_file(client_sock)  # recieve a chunk
+            if not file_chunk:
+                break
+            file.write(file_chunk)
+            # print("recieving...")
+    print("Finish recieve file!")
 
 ##########################################################
 # 添加好友界面的Item填充
@@ -125,6 +197,7 @@ class customAddContactItem(QTreeWidgetItem):
 
     # 写添加好友/群组的逻辑
     def addContact(self):
+
         self.isGroup = False
         parent_item = self.parent()
         tree_widget = self.treeWidget()
@@ -139,6 +212,7 @@ class customAddContactItem(QTreeWidgetItem):
         
 
         print(self.isGroupGroup == True)
+
         pass
 
 
@@ -162,6 +236,7 @@ class customContactItem(QTreeWidgetItem):
         self.name = name
         self.img = img
         self.widget = QWidget()
+        self.name = name 
 
         # 设置图像label
         self.avatorLabel = QLabel()
@@ -203,6 +278,33 @@ class customContactItem(QTreeWidgetItem):
                 break
         parent_item.takeChild(index)
 
+
+        self.isGroup = False
+        if  index == 1:
+            self.isGroup = True
+
+        # if isGroup == False :
+        #     msg_str = "F06+" + self.name 
+        #     send_msg(client_sock,msg_str)
+        # elif isGroup == True :
+        #     msg_str = "G21+" + self.name 
+            # send_msg(client_sock,msg_str)
+
+        pass
+    
+    def clearContact(self):
+        
+        parent_item = self.parent()
+        tree_widget = self.treeWidget()
+        index = -1
+        for i in range(parent_item.childCount()):
+            if parent_item.child(i) == self:
+                index = i
+                break
+        parent_item.takeChild(index)
+    
+
+
         self.isGroup =False
         if  index == 1:
             self.isGroup = True
@@ -211,6 +313,7 @@ class customContactItem(QTreeWidgetItem):
     def inviteFriend(self):
         # self.name self.inviteGroupName 可用
         pass
+
 
     def set_distribution(self):
         # 设置布局
@@ -425,8 +528,8 @@ class customChatItem(QListWidgetItem):
         self.lastMsgLabel.setText(temp)
         # 未睹消息
         if isGroup:
-            self.isGourpLabel = QLabel()
-            self.isGourpLabel.setText("Group")
+            self.isGroupLabel = QLabel()
+            self.isGroupLabel.setText("Group")
         # 设置item_widget的布局，写成函数便于继承重写
         self.set_distribution()
         # 设置自定义sizehint，否则无法显示 抄来的 不知道为什么
@@ -486,9 +589,19 @@ class chatBubble(QWidget):
                  is_unread = False, parent = None, isFile = False, isVoiceMsg = False):
         super().__init__(parent)
         # 美工部分 设置气泡颜色 字体
-        # self.setStyleSheet("background-color: white;\
-        #                     border-radius: 10px;\
-        #                    padding: 10px")
+
+        self.content = content 
+        self.name = name 
+        self.date = date 
+        self.is_unread = is_unread
+        self.isFile = isFile 
+        self.isVoiceMsg = isVoiceMsg 
+
+
+        self.setStyleSheet("background-color: red;\
+                            border-radius: 10px\
+                           padding: 10px")
+
         
         msgTitle = QLabel(name +":  at " + date.strftime("%Y-%m-%d, %H:%M:%S") )
         
@@ -500,8 +613,10 @@ class chatBubble(QWidget):
 
         recvFileBtn = QPushButton()
         if isFile :
+            
             recvFileBtn.setText("receiveFILE")
             recvFileBtn.clicked.connect(self.receiveFIle)
+
             # self.clicked.connect(recvFileBtn.clicked())
 
         if isVoiceMsg:
@@ -533,25 +648,46 @@ class chatBubble(QWidget):
 
     # 写收文件的逻辑
     def receiveFIle(self):
+        global STOP_UPDATE
+        STOP_UPDATE = True
         file_dialog = QFileDialog()
-        save_path, _ = file_dialog.getSaveFileName(self, "保存文件")
-        if save_path:
+        # save_path, _ = file_dialog.getSaveFileName(self, "保存文件")
+        
+            # 先跟服务器打招呼，说我要接受文件
+        send_msg(client_sock,"T03+"+self.content)
+        response = recv_msg(client_sock)
+        if response != "T03+ERROR":
+            clientrecievefile(client_sock,response)
+
+
             # 在这里实现文件接收的逻辑
-            print("保存文件的路径：", save_path)
+            print("保存文件的路径：", FILE_PATH)
         else :
             USERNAME
             pass
+        STOP_UPDATE = False
 
     # 需要写进度条还是仅仅返回收取错误或成功
     # 写收文件并且播放的逻辑
     def playVoiceMsg(self):
+        global STOP_UPDATE 
+        STOP_UPDATE = True 
         file_dialog = QFileDialog()
-        save_path, _ = file_dialog.getSaveFileName(self, "保存文件")
-        if save_path:
+        send_msg(client_sock,"T03+"+self.content)
+        response = recv_msg(client_sock)
+        if response != "T03+ERROR":
+            clientrecievefile(client_sock,response)
+
+
             # 在这里实现文件接收的逻辑
-            print("保存文件的路径：", save_path)
+            print("保存文件的路径：", FILE_PATH)
+        else :
+            pass
+        
+            # 在这里实现文件接收的逻辑
+
             # 接收文件后调用相关播放器播放文件 不会弄
-    
+        STOP_UPDATE = False 
 
 # 主窗口
 class mainWindow(QMainWindow, Ui_MainWindow):
@@ -563,6 +699,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # 设置标题
         self.setWindowTitle("BlazIngChaT")
         # 好友列表的设置
+        self.userName = userName
         self.contactListStack.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.contactListStack_showPageAdd = False
         # 限制列表只能单个选择
@@ -838,13 +975,60 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     # 获取当前用户信息的逻辑    
     def loadUserInfo(self, userName):
         # UserInfo格式 【用户名， 昵称， 密码， 密保问题， 密保答案，ip信息 】
+        
         #还期望获得个人用户头像 set as "avator.jpg" or sth
+        send_msg(client_sock,"U00+")
+        user_response = ast.literal_eval(recv_msg(client_sock))
+
+        msg_str = "U01+"
+        send_msg(client_sock,msg_str)
+        response = ast.literal_eval(recv_msg(client_sock))
+        print(response)
+        friends = response["friends"]
+        friends.append(user_response[0][0])
+        groups = response["groups"]
+        send_msg(client_sock,"T21+")
+        response = ast.literal_eval(recv_msg(client_sock))
+        # print("---------------------------")
+        # print(response["A00"][0][0])
+
+
+        for item in friends:
+            if item in response:
+                send_msg(client_sock,"T03+" + response[item][0][0])
+                info = recv_msg(client_sock)
+                addname = os.path.splitext(response[item][0][0])[1]
+                avatar_name = str(item) + "avatar" + addname
+                ClientDownloadAvatar(client_sock,info,avatar_name)
+                AVATAR_DICT[item] = AVATAR_PATH + avatar_name
+            else :
+                avatar_name = "defaultavatar.png"
+                AVATAR_DICT[item] = AVATAR_PATH + avatar_name
+
+
+        for item in groups :
+            if item in response:
+                send_msg(client_sock,"T03+" + response[item][0][0])
+                info = recv_msg(client_sock)
+                print(info)
+                addname = os.path.splitext(response[item][0][0])[1]
+                avatar_name = str(item) + "avatar" + addname
+                ClientDownloadAvatar(client_sock,info,avatar_name)
+                AVATAR_DICT[item] = AVATAR_PATH + avatar_name
+            else :
+                avatar_name = "defaultavatar.png"
+                AVATAR_DICT[item] = AVATAR_PATH + avatar_name
+        
+
+        
+        
+        
         
         self.userInfo ={\
-            "avatarInfo": "./pic.jpg", \
-            "userNameInfo" : "123", \
-            "nickNameInfo": "Morningstar", \
-            "passwordInfo": "123", \
+            "avatarInfo": AVATAR_DICT[user_response[0][0]], \
+            "userNameInfo" : user_response[0][0], \
+            "nickNameInfo": user_response[0][1], \
+            "passwordInfo": user_response[0][2], \
             "secureQuestionInfo": "question" * 10, \
             "secureAnswerInfo": "ans" * 10, \
             "ipInfo" : "ip"
@@ -859,25 +1043,57 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
     # 用户向服务器上传文件
     def uploadAvatar(self):
+        global STOP_UPDATE
+        STOP_UPDATE = True
         file_dialog = QFileDialog()
         file_path , _ = file_dialog.getOpenFileName(self, "选择文件")
         if file_path:
+            str_msg = "T20+" + self.userName + "||-||" + file_path + "||-||" + "avatar"
+            clientsendfile(client_sock,str_msg)
             pass
+        print("FInish upload")
+        STOP_UPDATE = False
 
     # 点击按钮后发送消息
     def chatSend(self):
+        global STOP_UPDATE
+        STOP_UPDATE = True
+        items = self.chatMsgList.selectedItems()
+        item = items[0] 
+        # item.isGroup
+        print(item.isGroup)
         msg = self.chatMsgEdit.toPlainText()
+        if item.isGroup == 0:
+            str_msg = "C00+" + str(item.name) + "||-||" + msg 
+            send_msg(client_sock,str_msg)
+
+        if item.isGroup == 1:
+            str_msg = "C03+" + str(item.name) + "||-||" + msg 
+            send_msg(client_sock,str_msg)
+
         self.chatMsgEdit.clear()
         self.chatMsgEdit.setFocus()
         #写发送消息的逻辑
-        pass
+        pass 
+        STOP_UPDATE = False 
     
     def sendFile(self):
+        global STOP_UPDATE
+        STOP_UPDATE  = True  # 发送文件时停止更新
+        items = self.chatMsgList.selectedItems()
+        item = items[0]
         file_dialog = QFileDialog()
         file_path, _ = file_dialog.getOpenFileName(self, "选择文件")
         if file_path:
-            #写发送文件的逻辑
+            if item.isGroup == 0:
+                str_msg = "T02+" + str(item.name) + "||-||" + str(file_path) + "||-||" + "chatfile"
+                clientsendfile(client_sock,str_msg)
+            else :
+                str_msg = "T04+" + str(item.name) + "||-||" + str(file_path) + "||-||" + "groupchatfile"
+                clientsendfile(client_sock,str_msg)
             pass
+
+        STOP_UPDATE = False 
 
     # 展示聊天界面
     def showChat(self,cur_item):
@@ -908,11 +1124,11 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             if self.last_item == item:
                 size =  len(item.all_msg) - len(self.all_msg) 
                 # 先做倒叙，再添加
-                print(size)
-                print(item.all_msg)
+                # print(size)
+                # print(item.all_msg)
                 for msg in item.all_msg[0:size][::-1]:
                     # position一定写-2， 不写-1，防止把自拓展的空白区域‘手齐’(sb输入法)掉
-                    print(msg)
+                    # print(msg)
                     self.showMsg(single_msg=msg, position = -2)
                 self.all_msg = item.all_msg.copy()
 
@@ -921,7 +1137,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
                 self.all_msg = item.all_msg.copy()
                 self.chatMsgBrowserClear()
                 for msg in item.all_msg:
-                    print(msg)
+                    # print(msg)
                     self.showMsg(single_msg=msg)
         
         elif single_msg != None:
@@ -1001,37 +1217,108 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
         self.contactListStack_showPageAdd = not self.contactListStack_showPageAdd
 
-    # 期望在这个函数获得所所有的聊天记录 all_msg
+    # 期望在这个函数获得所所有的聊天记录 all_msg3
     def loadChatList(self):
         # msg格式   [发送者 接受者 内容 时间 是否已读]
-        dt1 = datetime(2023, 8 , 20,12,32, 50 )
-        dt2 = datetime(2000,1,1,1,1,1)
-        all_msg = [("A", "123", "hellollllllllllllllllllllllllllllll\
-                    llllllllllllllllllllllllllllllllllllllllll\
-                    lllllllllllllllllllllllllllllllllllllllll\
-                    ;\lllllllllllllllllllllllllllllllllllllll", dt1, True), ("123", "A", "hey", dt2, False )]
+        send_msg(client_sock,"U01+") # 先获取用户列表和群组列表
+        friend_and_group_dict = ast.literal_eval(recv_msg(client_sock))
+        friend_list = friend_and_group_dict["friends"] 
+        group_list = friend_and_group_dict["groups"]
 
-        lsFriend = [("A", "./pic.jpg", all_msg),("B", "pic.jpg", all_msg)]
+        # 接下来开始逐个人拉取信息，生成对应的消息列表
+        lsFriend = [] 
+        for item in friend_list:
+            send_msg(client_sock,"U02+"+item)
+            response = ast.literal_eval(recv_msg(client_sock))
+            all_msg = [] 
+            # print(response)
+            for thing in response:
+                
+                all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
+            if len(all_msg) > 0:
+                if item in AVATAR_DICT:
+                    mypath = AVATAR_DICT[item]
+                else :
+                    mypath = AVATAR_PATH + "defaultavatar.png"
+                lsFriend.append((item,mypath,all_msg,False))
+
+        for item in group_list:
+            send_msg(client_sock,"U03+"+item)
+            response = ast.literal_eval(recv_msg(client_sock))
+            all_msg = [] 
+            # print(response)
+            for thing in response:
+                all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
+            if len(all_msg) > 0:
+                if item in AVATAR_DICT:
+                    mypath = AVATAR_DICT[item]
+                else :
+                    mypath = AVATAR_PATH + "defaultavatar.png"
+                lsFriend.append((item,mypath,all_msg,True))
+
+            # print(response)
+            
+            # break 
+
+
+        # dt1 = datetime(2023, 8 , 20,12,32, 50 )
+        # dt2 = datetime(2000,1,1,1,1,1)
+        # all_msg = [("A", "123", "hellollllllllllllllllllllllllllllll\
+        #             llllllllllllllllllllllllllllllllllllllllll\
+        #             lllllllllllllllllllllllllllllllllllllllll\
+        #             ;\lllllllllllllllllllllllllllllllllllllll", dt1, True), ("123", "A", "hey", dt2, False )]
+
+        # lsFriend = [("A", "./pic.jpg", all_msg),("B", "pic.jpg", all_msg)]
         
         # 以上为测试 生成lsFriend即可
         for i in range(len(lsFriend)):
-            item = customChatItem(lsFriend[i][0], lsFriend[i][1], lsFriend[i][2])
+            item = customChatItem(lsFriend[i][0], lsFriend[i][1], lsFriend[i][2], lsFriend[i][3])
             self.chatMsgList.addItem(item)
             self.chatMsgList.setItemWidget(item, item.widget)
 
     # 期望在这个函数获得新的聊天记录形成items，与原来的比较后，更新
-    def reLoadChatList(self, names): 
-        dt1 = datetime(2023, 8 , 20,12,32, 50 )
-        dt2 = datetime(2000,1,1,1,1,1)
-        all_msg = [("123", "A", "nononononononono", dt2, False ), \
-                   ("A", "123", "hellollllllllllllllllllllllllllllll\
-                    llllllllllllllllllllllllllllllllllllllllll\
-                    lllllllllllllllllllllllllllllllllllllllll\
-                    ;\lllllllllllllllllllllllllllllllllllllll", dt1, True), ("123", "A", "hey", dt2, False )]
-        all_msg_A  = all_msg_B = all_msg_C = all_msg.copy()
-        lsFriend = [{"name": "A", "img":  "/home/jh/code/QtDemo/Project_Github/ChatProject/client_Trial/pic.jpg","new_msg":  all_msg_A}, \
-                    {"name": "B", "img": "./pic.jpg", "new_msg": all_msg_B}, \
-                    {"name": "C", "img":  './pic.jpg',"new_msg": all_msg_C}]
+
+    def reLoadChatList(self, friends,groups): 
+        print("___________________________UPDATE START__________________________")
+        names = friends + groups
+        lsFriend = []
+        if len(friends) > 0:
+            for item in friends:
+                send_msg(client_sock,"U05+"+item)
+                response = ast.literal_eval(recv_msg(client_sock))
+                all_msg = [] 
+                print(response)
+                for thing in response:
+                    
+                    all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
+                if len(all_msg) > 0:
+                    lsFriend.append({"name":item,"img":None,"new_msg":all_msg})
+
+        if len(groups) > 0:
+            for item in groups:
+                send_msg(client_sock,"U06+"+item)
+                response = ast.literal_eval(recv_msg(client_sock))
+                all_msg = [] 
+                print(response)
+                for thing in response:
+                    all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
+                if len(all_msg) > 0:
+                    lsFriend.append({"name":item,"img":None,"new_msg":all_msg})
+        print("___________________________UPDATE END__________________________")
+        # print(lsFriend)
+
+        # dt1 = datetime(2023, 8 , 20,12,32, 50 )
+        # dt2 = datetime(2000,1,1,1,1,1)
+        # all_msg = [("123", "A", "nononononononono", dt2, False ), \
+        #            ("A", "123", "hellollllllllllllllllllllllllllllll\
+        #             llllllllllllllllllllllllllllllllllllllllll\
+        #             lllllllllllllllllllllllllllllllllllllllll\
+        #             ;\lllllllllllllllllllllllllllllllllllllll", dt1, True), ("123", "A", "hey", dt2, False )]
+        # all_msg_A  = all_msg_B = all_msg_C = all_msg.copy()
+        # lsFriend = [{"name": "A", "img":  "./pic.jpg","new_msg":  all_msg_A}, \
+        #             {"name": "B", "img": "./pic.jpg", "new_msg": all_msg_B}, \
+        #             {"name": "C", "img":  './pic.jpg',"new_msg": all_msg_C}]
+
 
         # 以上为测试 生成lsFriend 即可
         #  all_msg处只用写入新的消息!!!!!!!!! 
@@ -1100,15 +1387,34 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         groupFather.setExpanded(True)
         #清空所有现有的内容
         while friendFather.childCount() > 0:
-            friendFather.child(0).deleteContact()
+            friendFather.child(0).clearContact()
         while groupFather.childCount() > 0:
-            groupFather.child(0).deleteContact()
+            groupFather.child(0).clearContact()
 
         # 以下ls需要从服务器获得，要求是全部的
-        lsFriend = [("A", "./Edge.jpg"),
-                    ("B", "./VS Code.jpg")]
-        lsGroup = [("A", "./Edge.jpg"),
-                    ("B", "./VS Code.jpg")]
+        # 先拉取一次全部头像
+
+
+        msg_str = "U01+"
+        send_msg(client_sock,msg_str)
+        response = ast.literal_eval(recv_msg(client_sock))
+        print(response)
+        friends = response["friends"]
+        groups = response["groups"]
+        lsFriend = [] 
+        lsGroup = [] 
+        
+        print(response)
+        for item in friends:
+            lsFriend.append((item,AVATAR_DICT[item]))
+        for item in groups :
+            lsGroup.append((item,AVATAR_DICT[item]))
+
+
+        # lsFriend = [("A", "./Edge.jpg"),
+        #             ("B", "./VS Code.jpg")]
+        # lsGroup = [("A", "./Edge.jpg"),
+        #             ("B", "./VS Code.jpg")]
         for i in range(len(lsFriend)):
             item = customContactItem(name=lsFriend[i][0], img=lsFriend[i][1])
             friendFather.addChild(item)
@@ -1185,7 +1491,7 @@ class Voicecall(QDialog, Ui_Voicecall):
 
 
 # 更新窗口的触发器
-class mainWindowUpdater:
+class mainWindowUpdater():
     def __init__(self, mainwindow:mainWindow) -> None:
         self.mainwindow = mainwindow
         self.timer = QTimer()
@@ -1193,12 +1499,57 @@ class mainWindowUpdater:
         self.timer.start(10000)# 5 s
 
     def updateMainWindow(self):
-        print("updateCalled")
-        # 在这里写更新的接口，接收服务端的某个信号，说明该用户与某些用户的消息更新了，给定参数names
-        # if updeteChats():
-        names = ["A", "B", "C"]
-        self.mainwindow.reLoadChatList(names)
         
+
+        if STOP_UPDATE == False:
+            print("updateCalled")
+            # 在这里写更新的接口，接收服务端的某个信号，说明该用户与某些用户的消息更新了，给定参数names
+            if STOP_UPDATE == False:
+                if self.updateChats():
+                    # if STOP_UPDATE == False :
+
+                    str_msg = "U04+"
+                    send_msg(client_sock,str_msg)
+                    response = ast.literal_eval(recv_msg(client_sock))
+                    friends = response["friends"]
+                    groups = response["groups"]
+                    self.mainwindow.reLoadChatList(friends,groups)
+                
+                if self.updateContacts():
+                
+                    self.mainwindow.loadContactsList()
+
+            print("updateClosed")
+
+        
+
+    def updateChats(self) :
+        # msg_str = ""
+        if STOP_UPDATE == False:
+            str_msg = "U04+"
+            send_msg(client_sock,str_msg)
+            response = ast.literal_eval(recv_msg(client_sock))
+            print(response)
+            if len(response["friends"]) > 0 or len(response["groups"]) >0 :
+
+                return True 
+            else :
+                return False 
+        else :
+            return False
+        
+    def updateContacts(self):
+        if STOP_UPDATE == False :
+            str_msg = "F30+"
+            send_msg(client_sock,str_msg)
+            response = recv_msg(client_sock)
+            if response == "F30+UPDATE":
+                return True 
+            else :
+                return False
+        else :
+            return False 
+
         # if updateContacts():
         global UPDATEGROUP
         if UPDATEGROUP:
@@ -1207,7 +1558,7 @@ class mainWindowUpdater:
 
         self.mainwindow.loadContactsList()
 
-        print("updateClosed")
+
 
         
 # 登录界面
@@ -1244,24 +1595,24 @@ class loginWindow(QDialog, Ui_LoginDialog):
         self.regist.exec_()
     
     def match(self):
-        # userid = self.usrLineEdit.text() 
-        # password = self.pwdLineEdit.text() 
-        # msg = "L01+"
-        # msg = msg + userid + "||-||" + password
-        # send_msg(client_sock,msg)
-        # response = recv_msg(client_sock)
-        # print(response)
-        # if response == "L01+SUCCESS":
-        #     # self.matched = True
-        #     self.accept()
+        userid = self.usrLineEdit.text() 
+        password = self.pwdLineEdit.text() 
+        msg = "L01+"
+        msg = msg + userid + "||-||" + password
+        send_msg(client_sock,msg)
+        response = recv_msg(client_sock)
+        print(response)
+        if response == "L01+SUCCESS":
+            # self.matched = True
+            self.accept()
 
         
-        if self.usrLineEdit.text() == "123" and \
-            self.pwdLineEdit.text() == "123":
-            self.matched = True
+        # if self.usrLineEdit.text() == "123" and \
+        #     self.pwdLineEdit.text() == "123":
+        #     self.matched = True
             global USERNAME
             USERNAME = self.usrLineEdit.text()
-            self.accept()
+        #     self.accept()
             self.userName = USERNAME
 
         else :
@@ -1283,9 +1634,12 @@ class Register(QDialog, Ui_Register):
             msg_box = QMessageBox(QMessageBox.Critical, '错误', '两次输入的密码不一致')
             msg_box.exec_()
         else:
-            # 此处需添加将用户信息录入数据库的函数 !!!
-            msg_box = QMessageBox(QMessageBox.Critical, '正确', '注册成功')
-            msg_box.exec_()
+            msg_str = "L00+" + self.UsernameLineEdit.text() + "||-||" + self.NicknameLineEdit.text() + "||-||" + self.PasswordLineEdit.text() 
+            send_msg(client_sock,msg_str)
+            response = recv_msg(client_sock)
+            if response == "L00+SUCCESS":
+                msg_box = QMessageBox(QMessageBox.Critical, '正确', '注册成功')
+                msg_box.exec_()
 
             self.close()
 
@@ -1297,20 +1651,27 @@ class Information(QDialog, Ui_Information):
         self.GoBtn.clicked.connect(self.GoClicked)
 
     def GoClicked(self):
+        global STOP_UPDATE
         if self.OldPassword.text() == "" or self.NewPassword.text() == "" or self.ConfirmLineEdit.text() == "" :
             msg_box = QMessageBox(QMessageBox.Critical, '错误', '所填密码不得为空')
             msg_box.exec_()
-        elif self.OldPassword.text() != "123":
-            msg_box = QMessageBox(QMessageBox.Critical, '错误', '所填旧密码错误')
-            msg_box.exec_()
         elif self.NewPassword.text() != self.ConfirmLineEdit.text() :
-            msg_box = QMessageBox(QMessageBox.Critical, '错误', '新的密码两次输入不一致')
-            msg_box.exec_()
-        else :
-            #此处需添加修改数据库中用户信息的函数
-            msg_box = QMessageBox(QMessageBox.Information, '正确', '修改成功')
-            msg_box.exec_()
-            self.close()
+                msg_box = QMessageBox(QMessageBox.Critical, '错误', '新的密码两次输入不一致')
+                msg_box.exec_()
+        else:
+            STOP_UPDATE = True
+            str_msg = "U10+" + self.OldPassword.text() + "||-||" +self.ChangeNickname.text() + "||-||" + self.NewPassword.text()
+            send_msg(client_sock,str_msg)
+            response = recv_msg(client_sock)
+            STOP_UPDATE = False 
+            if response == "U10+ERROR":
+                msg_box = QMessageBox(QMessageBox.Critical, '错误', '所填旧密码错误')
+                msg_box.exec_()
+            elif response == "U10+SUCCESS":
+                msg_box = QMessageBox(QMessageBox.Information, '正确', '修改成功')
+                msg_box.exec_()
+                self.close()
+
 
 class createGroupDialog(QDialog, Ui_createGroupDialog):
     def __init__(self, parent = None):
@@ -1330,19 +1691,19 @@ class createGroupDialog(QDialog, Ui_createGroupDialog):
 
 
 if __name__ == '__main__':
-    # # global client_sock
-    # SERVER_IP = "127.0.0.1" 
-    # SERVER_PORT = 10020
-    # BUFFER_SIZE = 1024
+    # global client_sock
+    SERVER_IP = "127.0.0.1" 
+    SERVER_PORT = 12345
+    BUFFER_SIZE = 1024
 
-    # client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # try:
-    #     client_sock.connect((SERVER_IP, SERVER_PORT))
-    # except socket.error as e:
-    #     print("Connection failed! Error:", str(e))
-    #     client_sock.close()
-    #     exit()
+    try:
+        client_sock.connect((SERVER_IP, SERVER_PORT))
+    except socket.error as e:
+        print("Connection failed! Error:", str(e))
+        client_sock.close()
+        exit()
 
 
 
