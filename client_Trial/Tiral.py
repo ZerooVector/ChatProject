@@ -264,6 +264,7 @@ class customGroupMemberItem(QWidget):
         # 添加
         if self.addManagerBtn.text() == "addManager":
             pass
+        
         # 删除
         else:
 
@@ -696,8 +697,8 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
             
             # self.groupApplyPage.clear()
-            self.loadGroupValidation()
             self.loadGroupMember()
+            self.loadGroupValidation()
 
         else :
             self.showContactPage.hide()
