@@ -23,10 +23,10 @@ from PIL import Image
 from facenet_pytorch import MTCNN, InceptionResnetV1
 
 
-DB_PATH = "/home/syh/MyProjects/ChatProject/serverLogic/server.db"
-FILE_PATH = "/home/syh/MyProjects/ChatProject/serverLogic/filefolder/"
-FACE_PATH = "/home/syh/MyProjects/ChatProject/serverLogic/facefolder/"
-GPT_PERSONA_PATH = "/home/syh/MyProjects/ChatProject/serverLogic/filefolder/"
+DB_PATH = "/home/syh/MyProjects/temp/serverLogic/server.db"
+FILE_PATH = "/home/syh/MyProjects/temp/serverLogic/filefolder/"
+FACE_PATH = "/home/syh/MyProjects/temp/serverLogic/facefolder/"
+GPT_PERSONA_PATH = "/home/syh/MyProjects/temp/serverLogic/filefolder/"
 
 
 os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
@@ -35,15 +35,15 @@ openai.api_key = "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"
 
 
 device = torch.device("cpu")
-tokenizer = BertTokenizer.from_pretrained("/home/syh/MyProjects/ChatProject/serverLogic/gpt2-chinese-cluecorpussmall")
+tokenizer = BertTokenizer.from_pretrained("/home/syh/MyProjects/temp/serverLogic/gpt2-chinese-cluecorpussmall")
 
 model1 = GPT2().to(device)
 model1.eval()
-model1.load_state_dict(torch.load("/home/syh/MyProjects/ChatProject/serverLogic/model_checkpoints/GPT2.pt",map_location=torch.device('cpu')),False)
+model1.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT2.pt",map_location=torch.device('cpu')),False)
 
 model2 = GPT2().to(device)
 model2.eval()
-model2.load_state_dict(torch.load("/home/syh/MyProjects/ChatProject/serverLogic/model_checkpoints/GPT3.pt",map_location=torch.device('cpu')),False)
+model2.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT3.pt",map_location=torch.device('cpu')),False)
 
 
 resnet = InceptionResnetV1(pretrained='vggface2').eval()
@@ -248,7 +248,7 @@ def signup(cursor,sock,data,db_conn):
     result = cursor.fetchall()  # get all of the result 
     if len(result) > 0:
         send_msg(sock,"L00+ERROR")
-        send_msg(sock,"There is a user with same ID!")
+        # send_msg(sock,"There is a user with same ID!")
     else: # ok
         cmd = '''
         INSERT INTO user (id,nickname,password,status)
@@ -257,7 +257,7 @@ def signup(cursor,sock,data,db_conn):
         cursor.execute(cmd,(input_id,input_nickname,input_password,"offline",))
         db_conn.commit()
         send_msg(sock,"L00+SUCCESS")
-        send_msg(sock,"Successfully Sign Up!")
+        # send_msg(sock,"Successfully Sign Up!")
 
 
 
@@ -325,8 +325,9 @@ def addfriendrequest(cursor,sock,data,userid,db_conn):
     cursor.execute(cmd,(add_request,))
     rows = cursor.fetchall() 
     if len(rows) == 0:
-        send_msg(sock,"F01+ERROR")
-        send_msg(sock,"Cannot find this user!")
+        # send_msg(sock,"F01+ERROR")
+        print("Error!")
+        # send_msg(sock,"Cannot find this user!")
     else :
         cmd = '''
         SELECT *
@@ -336,12 +337,14 @@ def addfriendrequest(cursor,sock,data,userid,db_conn):
         cursor.execute(cmd,(userid,add_request,))
         rows = cursor.fetchall() 
         if len(rows) > 0:
-            send_msg(sock,"F01+ERROR")
-            send_msg(sock,"You have added this user!")
+            print("You have added the user ")
+            # send_msg(sock,"F01+ERROR")
+            # send_msg(sock,"You have added this user!")
         else :
             if add_request == userid:
-                send_msg(sock,"F01+ERROR")
-                send_msg(sock,"You cannot add yourself!")
+                # send_msg(sock,"F01+ERROR")
+                # send_msg(sock,"You cannot add yourself!")
+                print("You cannot add yourself")
             else :
                 ct = dt.datetime.now()
                 cmd = '''
@@ -350,8 +353,8 @@ def addfriendrequest(cursor,sock,data,userid,db_conn):
                 '''
                 cursor.execute(cmd,(userid,"none",add_request,"friendrq","activate",ct,"friendrq"))
                 db_conn.commit() 
-                send_msg(sock,"F01+SUCCESS")
-                send_msg(sock,"Please wait another user to check your request!")
+                # send_msg(sock,"F01+SUCCESS")
+                # send_msg(sock,"Please wait another user to check your request!")
 
 
 def getpreviousrequest_(cursor,sock,userid):
@@ -570,8 +573,9 @@ def sendmessage(cursor,sock,userid,data,db_conn):
     cursor.execute(cmd,(userid,target,))
     rows = cursor.fetchall() 
     if len(rows) == 0:
-        send_msg(sock,"C00+ERROR")
-        send_msg(sock,"This user isn't your friend!")
+        print("C00+ERROR")
+        # send_msg(sock,"C00+ERROR")
+        # send_msg(sock,"This user isn't your friend!")
     else :
         current_time = dt.datetime.now()
         current_time = str(current_time)
@@ -579,9 +583,10 @@ def sendmessage(cursor,sock,userid,data,db_conn):
         INSERT INTO message(initial,via,terminal,type,unreadflag,datetime,content)
         VALUES (?,?,?,?,?,?,?)
         '''
-        cursor.execute(cmd,(userid,"none",target,"chat","activate",current_time,content))
+        cursor.execute(cmd,(userid,"none",target,"chatfrom","activate",current_time,content))
+        cursor.execute(cmd,(userid,"none",target,"chatto","activate",current_time,content))
         db_conn.commit()
-        send_msg(sock,"C00+SUCCESS")
+        # send_msg(sock,"C00+SUCCESS")
 
 
 
@@ -589,34 +594,50 @@ def getpreviousmessage_(cursor,sock,userid,source,db_conn,clear = 1):
     current_time = dt.datetime.now()
     current_time = str(current_time)
     cmd = '''
-    SELECT content FROM message
+    SELECT initial, via, terminal, content,datetime FROM message
     WHERE 
+    (via = ?
+    AND type = ?
+    AND datetime < ?
+    AND initial = ?
+    AND terminal = ?)
+    OR 
+    (
     via = ?
     AND type = ?
     AND datetime < ?
     AND initial = ?
     AND terminal = ?
+    )
+    ORDER BY datetime ASC
     '''
-    cursor.execute(cmd,("none","chat",current_time,source,userid))
+    cursor.execute(cmd,("none","chatto",current_time,source,userid,"none","chatfrom",current_time,userid,source))
     rows = cursor.fetchall()
     if clear == 1 :  # clear unread flag
         cmd = '''
         UPDATE message 
         SET unreadflag = ?
         WHERE 
-        via = ?
-        AND type = ?
-        AND datetime < ?
-        AND initial = ?
-        AND terminal = ?
+        (via = ?
+    AND type = ?
+    AND datetime < ?
+    AND initial = ?
+    AND terminal = ?)
+    OR 
+    (
+    via = ?
+    AND type = ?
+    AND datetime < ?
+    AND initial = ?
+    AND terminal = ?
+    )
         '''
-        cursor.execute(cmd,("release","none","chat",current_time,source,userid))
+        cursor.execute(cmd,("release","none","chatto",current_time,source,userid,"none","chatfrom",current_time,userid,source))
     db_conn.commit()
-    res = [] 
-    for row in rows:
-        res.append(row[0])
-    return res 
-
+    # res = [] 
+    # for row in rows:
+    #     res.append(row[0])
+    return rows 
 
 
 def getpreviousmessage(cursor,sock,userid,data,db_conn,N = 1000):
@@ -624,56 +645,72 @@ def getpreviousmessage(cursor,sock,userid,data,db_conn,N = 1000):
     rows = getpreviousmessage_(cursor,sock,userid,source,db_conn,clear = 1)
     rows = rows[-N:]
     # rows = str(rows)
-    if len(rows) == 0 :
-        send_msg(sock,"C01+ERROR")
-        send_msg(sock,"No chat History!")
-    else :
-        rows = str(rows)
-        send_msg(sock,"C01+SUCCESS")
-        send_msg(sock,str(rows) )
+    # if len(rows) == 0 :
+    #     send_msg(sock,"C01+ERROR")
+    #     send_msg(sock,"No chat History!")
+    # else :
+    rows = str(rows)
+    # send_msg(sock,"C01+SUCCESS")
+    send_msg(sock,str(rows) )
 
 
 
 def getnewmessage_(cursor,sock,userid,source,db_conn):
     cmd = '''
-    SELECT content FROM message
+    SELECT initial, via, terminal, content, datetime FROM message
     WHERE
-    via = ?
+    (via = ?
+    AND type = ?
+    AND unreadflag = ?
+    AND initial = ?
+    AND terminal = ?)
+    OR
+    (via = ?
     AND type = ?
     AND unreadflag = ?
     AND initial = ?
     AND terminal = ?
+    )
+    ORDER BY datetime ASC
     '''
-    cursor.execute(cmd,("none","chat","activate",source,userid))
+    cursor.execute(cmd,("none","chatto","activate",source,userid,"none","chatfrom","activate",userid,source))
     rows = cursor.fetchall()
     cmd =  '''
     UPDATE  message
     SET unreadflag = ?
     WHERE
+    (via = ?
+    AND type = ?
+    AND unreadflag = ?
+    AND initial = ?
+    AND terminal = ?)
+    OR
+    (
     via = ?
     AND type = ?
     AND unreadflag = ?
     AND initial = ?
     AND terminal = ?
+    )
     '''
-    cursor.execute(cmd,("release","none","chat","activate",source,userid))  # release the flag
+    cursor.execute(cmd,("release","none","chatto","activate",source,userid,"none","chatfrom","activate",userid,source))  # release the flag
     db_conn.commit()
-    res = [] 
-    for row in rows:
-        res.append(row[0])
-    return res 
+    # res = [] 
+    # for row in rows:
+    #     res.append(row[0])
+    return rows  
 
 
 def getnewmessage(cursor,sock,userid,data,db_conn):
     source = data 
     rows = getnewmessage_(cursor,sock,userid,source,db_conn)
-    if len(rows) == 0 :
-        send_msg(sock,"C02+ERROR")
-        send_msg(sock,"No new message!")
-    else :
-        rows = str(rows)
-        send_msg(sock,"C02+SUCCESS")
-        send_msg(sock,str(rows))
+    # if len(rows) == 0 :
+    #     send_msg(sock,"C02+ERROR")
+    #     send_msg(sock,"No new message!")
+    # else :
+    rows = str(rows)
+        # send_msg(sock,"C02+SUCCESS")
+    send_msg(sock,str(rows))
 
 
 def getgroupmember_(cursor,sock,groupid):
@@ -761,8 +798,9 @@ def addgrouprequest(cursor,sock,userid,data,db_conn):
     cursor.execute(cmd,(rq,))
     rows = cursor.fetchall() 
     if len(rows) == 0 :
-        send_msg(sock,"G04+ERROR")
-        send_msg(sock,"Cannot find this group!")
+        # send_msg(sock,"G04+ERROR")
+        # send_msg(sock,"Cannot find this group!")
+        print("Cannot find the group!")
         return 
     cmd = '''
     INSERT INTO message(initial,via,terminal,type,datetime,unreadflag,content)
@@ -773,8 +811,8 @@ def addgrouprequest(cursor,sock,userid,data,db_conn):
     for person in manager:
         cursor.execute(cmd,(userid,rq,person,"grouprq",ct,"activate","grouprq"))
         db_conn.commit() 
-    send_msg(sock,"G04+SUCCESS")
-    send_msg(sock,"Successfully Send Request!")
+    # send_msg(sock,"G04+SUCCESS")
+    # send_msg(sock,"Successfully Send Request!")
 
 
 def inversegetmanager_(cursor,sock,userid): # buguan
@@ -999,13 +1037,15 @@ def sendgroupmessage(cursor,sock,userid,data,db_conn):
     content = data[1] 
     added_groups = askgroup_(cursor,sock,userid)
     if target not in added_groups:
-        send_msg(sock,"C03+ERROR")
-        send_msg(sock,"You have not add this group!")
+        # send_msg(sock,"C03+ERROR")
+        # send_msg(sock,"You have not add this group!")
+        print("C03+ERROR")
     else :
         members = getgroupmember_(cursor,sock,target)
         if len(members) == 0 :
-            send_msg(sock,"C03+ERROR")
-            send_msg(sock,"No members in the group!")
+            # send_msg(sock,"C03+ERROR")
+            # send_msg(sock,"No members in the group!")
+            print("C03+ERROR")
         else :
             current_time = dt.datetime.now()
             current_time = str(current_time)
@@ -1016,14 +1056,14 @@ def sendgroupmessage(cursor,sock,userid,data,db_conn):
             for person in members:
                 cursor.execute(cmd,(userid,target,person,"chat","activate",current_time,content))
                 db_conn.commit()
-            send_msg(sock,"C03+SUCCESS")
+            # send_msg(sock,"C03+SUCCESS")
 
     
 def getgrouppreviousmessage_(cursor,sock,userid,groupid,db_conn,clear = 1):
     current_time = dt.datetime.now()
     current_time = str(current_time)
     cmd = '''
-    SELECT initial,content FROM message
+    SELECT initial,via,terminal,content,datetime FROM message
     WHERE 
     via = ?
     AND type = ?
@@ -1064,7 +1104,7 @@ def getgrouppreviousmessage(cursor,sock,userid,data,db_conn,N = 1000):
 
 def getgroupnewmessage_(cursor,sock,userid,source,db_conn):
     cmd = '''
-    SELECT initial, content FROM message
+    SELECT initial, via,terminal,content,datetime FROM message
     WHERE
     via = ?
     AND type = ?
@@ -1094,13 +1134,13 @@ def getgroupnewmessage_(cursor,sock,userid,source,db_conn):
 def getgroupnewmessage(cursor,sock,userid,data,db_conn):
     groupid = data 
     rows = getgroupnewmessage_(cursor,sock,userid,groupid,db_conn)
-    if len(rows) == 0 :
-        send_msg(sock,"C05+ERROR")
-        send_msg(sock,"No new message!")
-    else :
-        rows = str(rows)
-        send_msg(sock,"C05+SUCCESS")
-        send_msg(sock,rows)
+    # if len(rows) == 0 :
+    #     send_msg(sock,"C05+ERROR")
+    #     send_msg(sock,"No new message!")
+    # else :
+    rows = str(rows)
+        # send_msg(sock,"C05+SUCCESS")
+    send_msg(sock,rows)
 
 
 
@@ -1129,8 +1169,8 @@ def serverrecievefile(cursor,sock,userid,data,db_conn):
                 break
             # file.write(file_chunk)
         file_chunk = ""
-        send_msg(sock,"T02+ERROR")
-        send_msg(sock,"This user is not your friend!")
+        # send_msg(sock,"T02+ERROR")
+        # send_msg(sock,"This user is not your friend!")
         return 
     # else :
         # send_msg(sock,"T01+CONTINUE")
@@ -1149,9 +1189,10 @@ def serverrecievefile(cursor,sock,userid,data,db_conn):
     '''
     current_time = dt.datetime.now() 
     current_time = str(current_time)
-    cursor.execute(cmd,(originname,savename,userid,"none",target,ftype,"activate",current_time))
+    cursor.execute(cmd,(originname,savename,userid,"none",target,ftype + "to","activate",current_time))
+    # cursor.execute(cmd,(originname,savename,userid,"none",target,ftype + "from","activate",current_time))
     db_conn.commit()
-    send_msg(sock,"T02+SUCCESS")
+    # send_msg(sock,"T02+SUCCESS")
     # send_msg(sock,"No new message!")
 
 
@@ -1403,15 +1444,16 @@ def serversendfile(cursor,sock,userid,data,db_conn):
     all_file = getallfile_(cursor,userid)
     if strname not in all_file:
         send_msg(sock,"T03+ERROR")
-        send_msg(sock,"You cannot recieve this file!")
+        # send_msg(sock,"You cannot recieve this file!")
     else :
         savepath = FILE_PATH +  strname 
         if not os.path.exists(savepath):
             send_msg(sock,"T03+ERROR")
-            send_msg(sock,"File not Exist!")
+            # send_msg(sock,"File not Exist!")
             print(f"File {savepath} does not exist!")  # client checks the file is or not exist 
             return
     # pause_event.clear()
+        # send_msg(sock,"T03+CONTINUE")
         cmd ='''
         SELECT originalname FROM file 
         WHERE storagename = ?
@@ -1471,25 +1513,37 @@ def getpreviousfile_(cursor,sock,userid,source,ftype,db_conn,clear = 1):
     ct = dt.datetime.now()
     ct = str(ct)
     cmd = '''
-    SELECT originalname, storagename FROM file
-    WHERE initial = ?
+    SELECT initial, via,terminal,storagename, datetime FROM file
+    WHERE (initial = ?
     AND via = ?
     AND terminal = ?
     AND type = ?
-    AND datetime < ?
+    AND datetime < ?)
+    OR
+    (initial = ?
+    AND via = ?
+    AND terminal = ?
+    AND type = ?
+    AND datetime < ?)
     '''
-    cursor.execute(cmd,(source,"none",userid,ftype,ct))
+    cursor.execute(cmd,(source,"none",userid,ftype+"to",ct,userid,"none",source,ftype+"to",ct))
     rows = cursor.fetchall() 
     if clear == 1:
         cmd = '''
         UPDATE file SET status = ?
-        WHERE initial = ?
+        WHERE (initial = ?
         AND via = ?
         AND terminal = ?
         AND type = ?
-        AND status = ?
+        AND status = ?)
+        OR
+        (initial = ?
+        AND via = ?
+        AND terminal = ?
+        AND type = ?
+        AND status = ?)
         '''
-        cursor.execute(cmd,("release",source,"none",userid,ftype,"activate"))
+        cursor.execute(cmd,("release",source,"none",userid,ftype+"to","activate",userid,"none",source,ftype+"to","activate"))
         db_conn.commit()
     return rows 
 
@@ -1500,36 +1554,51 @@ def getpreviousfile(cursor,sock,userid,data,db_conn):
     source = data[0] 
     ftype = data[1]
     rows = getpreviousfile_(cursor,sock,userid,source,ftype,db_conn)
-    if len(rows) == 0:
-        send_msg(sock,"T00+ERROR")
-        send_msg(sock,"Cannot find previous files!")
-    else :
-        send_msg(sock,"T00+SUCCESS")
-        send_msg(sock,str(rows))
+    # if len(rows) == 0:
+    #     send_msg(sock,"T00+ERROR")
+    #     send_msg(sock,"Cannot find previous files!")
+    # else :
+        # send_msg(sock,"T00+SUCCESS")
+    send_msg(sock,str(rows))
 
     
 
 def getnewfile_(cursor,sock,userid,source,ftype,db_conn):
     cmd = '''
-    SELECT originalname,storagename
+    SELECT initial, via, terminal, storagename, datetime
     FROM file 
-    WHERE initial = ?
+    WHERE (initial = ?
+    AND via = ?
+    AND terminal = ?
+    AND type = ?
+    AND status = ?)
+    OR
+    (
+        initial = ?
     AND via = ?
     AND terminal = ?
     AND type = ?
     AND status = ?
+    )
+    ORDER BY datetime ASC
     '''
-    cursor.execute(cmd,(source,"none",userid,ftype,"activate"))
+    cursor.execute(cmd,(source,"none",userid,ftype + "to","activate",userid,"none",source,ftype + "to","activate"))
     rows = cursor.fetchall() 
     cmd = '''
     UPDATE file SET status = ? 
-    WHERE initial = ?
+    WHERE (initial = ?
     AND via = ?
     AND terminal = ?
     AND type = ?
-    AND status = ?
+    AND status = ?)
+    OR
+    (initial = ?
+    AND via = ?
+    AND terminal = ?
+    AND type = ?
+    AND status = ?)
     '''
-    cursor.execute(cmd,("release",source,"none",userid,ftype,"activate"))
+    cursor.execute(cmd,("release",source,"none",userid,ftype + "to","activate",userid,"none",source,ftype + "to","activate"))
     db_conn.commit() 
     return rows 
 
@@ -1540,12 +1609,12 @@ def getnewfile(cursor,sock,userid,data,db_conn):
     source = data[0] 
     ftype = data[1]
     rows = getnewfile_(cursor,sock,userid,source,ftype,db_conn)
-    if len(rows) == 0:
-        send_msg(sock,"T01+ERROR")
-        send_msg(sock,"Cannot find previous files!")
-    else :
-        send_msg(sock,"T01+SUCCESS")
-        send_msg(sock,str(rows))
+    # if len(rows) == 0:
+    #     send_msg(sock,"T01+ERROR")
+    #     send_msg(sock,"Cannot find previous files!")
+    # else :
+        # send_msg(sock,"T01+SUCCESS")
+    send_msg(sock,str(rows))
 
 
 
@@ -1560,8 +1629,8 @@ def serverrecievegroupfile(cursor,sock,userid,data,db_conn):
     # friend = getfriendslist_(cursor,sock,userid)
     added_groups = askgroup_(cursor,sock,userid)
     if target not in added_groups:
-        send_msg(sock,"T04+ERROR")
-        send_msg(sock,"You have not add this group!")
+        # send_msg(sock,"T04+ERROR")
+        # send_msg(sock,"You have not add this group!")
         while True :
             file_chunk = recv_file(sock)  # recieve a chunk
             if not file_chunk:
@@ -1569,8 +1638,8 @@ def serverrecievegroupfile(cursor,sock,userid,data,db_conn):
     else :
         members = getgroupmember_(cursor,sock,target)
         if len(members) == 0 :
-            send_msg(sock,"T04+ERROR")
-            send_msg(sock,"No members in the group!")
+            # send_msg(sock,"T04+ERROR")
+            # send_msg(sock,"No members in the group!")
             while True :
                 file_chunk = recv_file(sock)  # recieve a chunk
                 if not file_chunk:
@@ -1594,7 +1663,7 @@ def serverrecievegroupfile(cursor,sock,userid,data,db_conn):
             for person in members:
                 cursor.execute(cmd,(userid,target,person,ftype,"activate",current_time,originname,savename))
                 db_conn.commit()
-            send_msg(sock,"T04+SUCCESS")
+            # send_msg(sock,"T04+SUCCESS")
     # else :
         # send_msg(sock,"T01+CONTINUE")
     # cnt = 0 
@@ -1605,7 +1674,7 @@ def getpreiviousgroupfile_(cursor,sock,userid,source,ftype,db_conn,clear = 1):
     ct = dt.datetime.now()
     ct = str(ct)
     cmd = '''
-    SELECT originalname, storagename FROM file
+    SELECT initial,via,terminal,storagename,datetime FROM file
     WHERE via = ?
     AND terminal = ?
     AND type = ?
@@ -1641,7 +1710,7 @@ def getpreviousgroupfile(cursor,sock,userid,data,db_conn):
 
 def getnewgroupfile_(cursor,sock,userid,source,ftype,db_conn):
     cmd = '''
-    SELECT originalname,storagename
+    SELECT initial, via , terminal, storagename, datetime
     FROM file 
     WHERE 
     via = ?
@@ -1955,8 +2024,6 @@ def findclientsockbyuserid_(user_id, current_online):
 
 
 
-
-
 def servertransferaudio(sock,userid,data):
     target = data 
     target_sock = findclientsockbyuserid_(target,current_online)
@@ -1983,9 +2050,325 @@ def servertransferaudio(sock,userid,data):
     send_msg(sock,msg2)
     print(msg1)
     send_msg(target_sock,msg1)
+
+
+
+
+def loaduserinfo(cursor,sock,userid):
+    # userid = data 
+    cmd = '''
+    SELECT id, nickname, password 
+    FROM user
+    WHERE id  = ?
+    '''
+    cursor.execute(cmd,(userid,))
+    rows = cursor.fetchall() 
+    send_msg(sock,str(rows))
+    return 
+
+def getalllist(cursor,sock,userid):
+    friends = getfriendslist_(cursor,sock,userid)
+    groups = askgroup_(cursor,sock,userid)
+    res_dict = {"friends":friends,"groups":groups}
+    send_msg(sock,str(res_dict))
+    return len(res_dict["friends"]), len(res_dict["groups"])
+
+def getalllist_(cursor,sock,userid):
+    friends = getfriendslist_(cursor,sock,userid)
+    groups = askgroup_(cursor,sock,userid)
+    res_dict = {"friends":friends,"groups":groups}
+    # send_msg(sock,str(res_dict))
+    return res_dict
+
+def friendupdatedetector(cursor,sock,userid,friendcount,groupcount):
+    friends = getfriendslist_(cursor,sock,userid)
+    groups = askgroup_(cursor,sock,userid)
+    if len(friends) != friendcount:
+        send_msg(sock,"F30+UPDATE")
+        return len(friends), len(groups)
+    if len(groups) != groupcount:
+        send_msg(sock,"F30+UPDATE")
+        return len(friends), len(groups)
+    send_msg(sock,"F30+STAY")
+    return len(friends), len(groups)
+
+
+def pullallfriendinfo(cursor,sock,userid,data,db_conn):
+    source = data # 查询一个人的所有历史信息，文件也被认为所信息，用于在登录时更新人的信息
+    chat_info = getpreviousmessage_(cursor,sock,userid,source,db_conn)
+    chat_info = [t + ("False",) for t in chat_info]
+    file_info = getpreviousfile_(cursor,sock,userid,source,"chatfile",db_conn)
+    file_info = [t + ("True",) for t in file_info]
+    audio_info = getpreviousfile_(cursor,sock,userid,source,"audiofile",db_conn)
+    audio_info = [t + ("True",) for t in audio_info]
+    res = chat_info + file_info + audio_info 
+    sorted_res = sorted(res, key=lambda x: x[4], reverse=True)
+    print(sorted_res)
+    send_msg(sock,str(sorted_res))
+
+
+def pullallgroupinfo(cursor,sock,userid,data,db_conn):
+    source = data 
+    chat_info = getgrouppreviousmessage_(cursor,sock,userid,source,db_conn,)
+    chat_info = [t + ("False",) for t in chat_info]
+    file_info = getpreiviousgroupfile_(cursor,sock,userid,source,"groupchatfile",db_conn)
+    file_info = [t + ("True",) for t in file_info]
+    audio_info = getpreiviousgroupfile_(cursor,sock,userid,source,"groupaudiofile",db_conn)
+    audio_info = [t + ("True",) for t in audio_info]
+    res = chat_info + file_info + audio_info 
+    sorted_res = sorted(res, key=lambda x: x[4], reverse=True)
+    send_msg(sock,str(sorted_res))
+    # send_msg(sock,str(sorted_res))
+
+
+
+def updatedetector(cursor,sock,userid):
+    friend_group_dict = getalllist_(cursor,sock,userid) 
+    print(friend_group_dict)
+    update_list1 = []
+    friend_list = friend_group_dict["friends"]
+    group_list = friend_group_dict["groups"]
+    for item in friend_list:
+        cmd = '''
+        SELECT initial, via, terminal, content, datetime FROM message
+        WHERE
+        (via = ?
+        AND type = ?
+        AND unreadflag = ?
+        AND initial = ?
+        AND terminal = ?)
+        OR
+        (via = ?
+        AND type = ?
+        AND unreadflag = ?
+        AND initial = ?
+        AND terminal = ?
+        )
+        ORDER BY datetime ASC
+        '''
+        cursor.execute(cmd,("none","chatto","activate",item,userid,"none","chatfrom","activate",userid,item))
+        rows = cursor.fetchall()
+        l1 = len(rows)
+        cmd = '''
+        SELECT originalname,storagename
+        FROM file 
+        WHERE (initial = ?
+        AND via = ?
+        AND terminal = ?
+        AND status = ?)
+        OR
+        (
+            initial = ?
+        AND via = ?
+        AND terminal = ?
+        AND status = ?
+        )
+        '''
+        cursor.execute(cmd,(item,"none",userid,"activate",userid,"none",item,"activate"))
+        rows = cursor.fetchall() 
+        l2 = len(rows)
+        if l1 >0 or l2 > 0 :
+            update_list1.append(item)
+        
+    update_list2 = []
+    for item in group_list:
+        cmd = '''
+        SELECT initial, content FROM message
+        WHERE
+        via = ?
+        AND type = ?
+        AND unreadflag = ?
+        AND terminal = ?
+        '''
+        cursor.execute(cmd,(item,"chat","activate",userid))
+        rows = cursor.fetchall()
+        print(rows)
+        l1 = len(rows)
+        cmd = '''
+        SELECT originalname,storagename
+        FROM file 
+        WHERE 
+        via = ?
+        AND terminal = ?
+        AND status = ?
+
+        '''
+        cursor.execute(cmd,(item,userid,"activate"))
+        rows = cursor.fetchall() 
+        l2 = len(rows)
+        if l1 >0 or l2 >0 :
+            update_list2.append(item)
+    info_dict = {"friends":update_list1,"groups":update_list2}
+    send_msg(sock,str(info_dict))
+    return 
+
+def pullnewfriendinfo(cursor,sock,userid,data,db_conn):
+    source = data # 查询一个人的所有历史信息，文件也被认为所信息，用于在登录时更新人的信息
+    chat_info = getnewmessage_(cursor,sock,userid,source,db_conn)
+    chat_info = [t + ("False",) for t in chat_info]
+    file_info = getnewfile_(cursor,sock,userid,source,"chatfile",db_conn)
+    file_info = [t + ("True",) for t in file_info]
+    audio_info = getnewfile_(cursor,sock,userid,source,"audiofile",db_conn)
+    audio_info = [t + ("True",) for t in audio_info]
+    res = chat_info + file_info + audio_info 
+    sorted_res = sorted(res, key=lambda x: x[4], reverse=True)
+    print(sorted_res)
+    send_msg(sock,str(sorted_res))
+
+def pullnewgroupinfo(cursor,sock,userid,data,db_conn):
+    source = data 
+    chat_info = getgroupnewmessage_(cursor,sock,userid,source,db_conn,)
+    chat_info = [t + ("False",) for t in chat_info]
+    file_info = getnewgroupfile_(cursor,sock,userid,source,"groupchatfile",db_conn)
+    file_info = [t + ("True",) for t in file_info]
+    audio_info = getnewgroupfile_(cursor,sock,userid,source,"groupaudiofile",db_conn)
+    audio_info = [t + ("True",) for t in audio_info]
+    res = chat_info + file_info + audio_info 
+    sorted_res = sorted(res, key=lambda x: x[4], reverse=True)
+    send_msg(sock,str(sorted_res))
+
+
+# def pullallgroupinfo():
+
+def deletefriend(cursor,sock,userid,data,db_conn):
+    target = data 
+    cmd = '''
+    SELECT * FROM friendrelation 
+    WHERE (user1 = ? AND user2 = ?) OR
+    (user2 = ? AND user1 = ?)
+    '''
+    cursor.execute(cmd,(userid,target,userid,target))
+    rows = cursor.fetchall() 
+    if len(rows) == 0:
+        # send_msg(sock,"F06+ERROR")
+        return 
+    cmd = '''
+    DELETE FROM friendrelation
+    WHERE (user1 = ? AND user2 = ?) OR 
+    (user2 = ? AND user1 = ?)
+    '''
+    cursor.execute(cmd,(userid,target,userid,target))
+    db_conn.commit() 
+
+
+def leavegroup(cursor,sock,userid,data,db_conn):
+    target = data 
+    cmd = '''
+    SELECT * FROM grouprelation
+    WHERE groupid = ? AND userid = ?
+    '''
+    cursor.execute(cmd,(target,userid))
+    rows = cursor.fetchall() 
+    if len(rows) == 0:
+        return 
+    cmd == '''
+    DELETE FROM grouprelation
+    WHERE groupid = ? AND userid = ?
+    '''
+    cursor.execute(cmd,(target,userid))
+    db_conn.commit() 
+
+
+def serverrecieveAvatar(cursor,sock,userid,data,db_conn):
+    data = data.split("||-||")
+    target = data[0] 
+    address = data[1]
+    ftype = data[2]
+    originname = os.path.basename(address)
+    savename = str(getfilecount_(cursor)) +"-" + originname 
+    savepath = FILE_PATH + savename
+
+        # send_msg(sock,"T01+CONTINUE")
+    # cnt = 0 
+
+    current_time = dt.datetime.now() 
+    current_time = str(current_time)
     
+    cmd ='''
+        UPDATE file
+        SET status = ? 
+        WHERE terminal = ?
+        AND type = ?
+        AND datetime < ?
+    '''
+    cursor.execute(cmd,('release',userid,"avatar",current_time))
+    db_conn.commit()
+    
+    with open(savepath,"wb") as file :
+        while True :
+            file_chunk = recv_file(sock)  # recieve a chunk
+            if not file_chunk:
+                break
+            file.write(file_chunk)
+            # print("recieving...")
+
+    cmd = '''
+    INSERT INTO file(originalname,storagename,initial,via,terminal,type,status,datetime)
+    VALUES(?,?,?,?,?,?,?,?)
+    '''
+    current_time = dt.datetime.now() 
+    current_time = str(current_time)
+    cursor.execute(cmd,(originname,savename,"none","none",userid,ftype,"activate",current_time)) 
+    db_conn.commit()    
+    # send_msg(sock,"T20+SUCCESS")
+
+def askavatar(cursor,sock):
+    cmd = '''
+    SELECT id FROM user
+    '''
+    cursor.execute(cmd)
+    rows = cursor.fetchall() 
+    res = [] 
+    for row in rows :
+        res.append(row[0])
+    cmd = '''
+    SELECT id FROM usergroup 
+    '''    
+    rows = cursor.fetchall() 
+    # res = [] 
+    for row in rows :
+        res.append(row[0])
+    
+    avatar_dic = {}
+    for item in res :
+        cmd = '''
+        SELECT storagename FROM file 
+        WHERE initial = ? AND via = ? AND terminal = ? AND type = ? AND status = ?
+        '''
+        cursor.execute(cmd,("none","none",item,"avatar","activate",))
+
+        res = cursor.fetchall()
+        if len(res) > 0:
+            avatar_dic[item] = res 
+        # else :
+            # avatar_dic["item"] = "none"
+
+    send_msg(sock,str(avatar_dic))
 
 
+def modifyinfo(cursor,sock,userid,data,db_conn):
+    data = data.split("||-||")
+    oldpass = data[0] 
+    cmd = '''
+    SELECT password FROM user 
+    WHERE id = ?
+    '''
+    cursor.execute(cmd,(userid,))
+    res = cursor.fetchall()[0][0]
+    if oldpass != res:
+        send_msg(sock,"U10+ERROR")
+        return 
+    nickname = data[1] 
+    password = data[2] 
+    cmd = '''
+    UPDATE user
+    SET nickname = ?, password = ?
+    WHERE id = ?
+    '''
+    cursor.execute(cmd,(nickname,password,userid))
+    db_conn.commit() 
+    send_msg(sock,"U10+SUCCESS")
+    
 
 
 
@@ -1998,20 +2381,20 @@ def handle_client(client_sock): # callback function, all functions of our app sh
 
     myGPT = ChatManager(api_key=openai.api_key,persona= None)
 
-    
-    
-    
-
     db_conn = sqlite3.connect(DB_PATH,timeout = 20)
     
     cursor = db_conn.cursor()
     # cursor.execute("PRAGMA journal_mode=WAL")
 
     
+    FriendCount = 0 
+    GroupCount = 0
 
     while True:
         data = recv_msg(client_sock)
         print(data)
+
+        
 
         if data is None:  # 如果data为None，说明客户端已经关闭，退出循环
             print("Client has closed the connection.")
@@ -2162,8 +2545,47 @@ def handle_client(client_sock): # callback function, all functions of our app sh
 
             if flag_bits == "VC2+" :
                 servertransferaudio(client_sock,user_id,data)
-            
 
+            if flag_bits == "U00+":
+                loaduserinfo(cursor,client_sock,user_id)
+            
+            if flag_bits == "U01+":
+                FriendCount, GroupCount = getalllist(cursor,client_sock,user_id)
+
+            if flag_bits == "U02+":
+                pullallfriendinfo(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "U03+":
+                pullallgroupinfo(cursor,client_sock,user_id,data,db_conn)
+            
+            if flag_bits == "U04+":
+                updatedetector(cursor,client_sock,user_id)
+
+            if flag_bits == "U05+":
+                pullnewfriendinfo(cursor,client_sock,user_id,data,db_conn)
+            
+            if flag_bits == "U06+":
+                pullnewgroupinfo(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "F06+":
+                deletefriend(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "G21+":
+                leavegroup(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "T20+":
+                serverrecieveAvatar(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "T21+":
+                askavatar(cursor,client_sock)
+
+            if flag_bits == "U10+":
+                modifyinfo(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "F30+":
+                FriendCount, GroupCount = friendupdatedetector(cursor,client_sock,user_id,FriendCount,GroupCount)
+
+            
 
 
         # if len(data) > 0:

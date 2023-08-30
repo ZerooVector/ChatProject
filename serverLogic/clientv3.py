@@ -646,7 +646,11 @@ def voicerealtime_terminal(client_sock,msg):
     
 def main():
     SERVER_IP = "192.168.43.4" 
+<<<<<<< HEAD
     SERVER_PORT = 12345
+=======
+    SERVER_PORT = 10020
+>>>>>>> origin/main
     BUFFER_SIZE = 1024
 
     client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
