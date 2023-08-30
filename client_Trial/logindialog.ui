@@ -122,6 +122,19 @@
     <string>Register</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="pushButton">
+   <property name="geometry">
+    <rect>
+     <x>520</x>
+     <y>150</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>face</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections>

@@ -30,7 +30,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>0</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -215,7 +215,7 @@
             <string>发送文件</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_3">
+          <widget class="QPushButton" name="sendVoiceBtn">
            <property name="geometry">
             <rect>
              <x>200</x>
@@ -225,10 +225,10 @@
             </rect>
            </property>
            <property name="text">
-            <string>发送语音</string>
+            <string>语音</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_4">
+          <widget class="QPushButton" name="TransformBtn">
            <property name="geometry">
             <rect>
              <x>310</x>
@@ -241,7 +241,7 @@
             <string>语音转文字</string>
            </property>
           </widget>
-          <widget class="QPushButton" name="pushButton_5">
+          <widget class="QPushButton" name="VoiceCallBtn">
            <property name="geometry">
             <rect>
              <x>420</x>
@@ -260,9 +260,9 @@
           <zorder>chatMsgBrowser</zorder>
           <zorder>pushButton</zorder>
           <zorder>sendFileBtn</zorder>
-          <zorder>pushButton_3</zorder>
-          <zorder>pushButton_4</zorder>
-          <zorder>pushButton_5</zorder>
+          <zorder>sendVoiceBtn</zorder>
+          <zorder>TransformBtn</zorder>
+          <zorder>VoiceCallBtn</zorder>
          </widget>
         </item>
        </layout>
