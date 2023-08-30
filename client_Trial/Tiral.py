@@ -2,18 +2,18 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QDialog,QFileDialog
 from PyQt5 import uic, QtCore
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QListWidgetItem, QTreeWidgetItem, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QMessageBox
+from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem,QTreeWidgetItem, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QMessageBox
 
 from datetime import datetime
 # from PyQt5.QtCore import *QAbstractItemView.SingleSelection
 from PyQt5.QtGui import QPainter,QPixmap
 
-
-from logindialog_ui import Ui_LoginDialog
-from untitled_test_basic_ui import Ui_MainWindow
-from register_ui import Ui_Register 
-from information_ui import Ui_Information
-
+from UI.createGroupDialog_ui import Ui_createGroupDialog
+from UI.logindialog_ui import Ui_LoginDialog
+from UI.untitled_test_basic_ui import Ui_MainWindow
+from UI.register_ui import Ui_Register 
+from UI.information_ui import Ui_Information
+from UI.Voicecall_ui import Ui_Voicecall
 
 
 ###########################
@@ -197,7 +197,21 @@ class customAddContactItem(QTreeWidgetItem):
 
     # 写添加好友/群组的逻辑
     def addContact(self):
-        # self.isGroup 
+
+        self.isGroup = False
+        parent_item = self.parent()
+        tree_widget = self.treeWidget()
+        index = -1
+        for i in range(tree_widget.topLevelItemCount()):
+            if parent_item == tree_widget.topLevelItem(i):
+                index = i
+                break
+        
+        if index == 1:
+            self.isGroup = True
+        
+
+        print(self.isGroupGroup == True)
 
         pass
 
@@ -219,7 +233,8 @@ class customContactItem(QTreeWidgetItem):
     img_size = (50, 50)
     def __init__(self, name, img):
         super().__init__()
-
+        self.name = name
+        self.img = img
         self.widget = QWidget()
         self.name = name 
 
@@ -239,6 +254,12 @@ class customContactItem(QTreeWidgetItem):
         self.deleteContactBtn.clicked.connect(self.deleteContact)
         self.deleteContactBtn.hide()
 
+        # 设置邀请好友按钮
+        self.inviteFriendBtn = QPushButton()
+        self.inviteFriendBtn.setText("Invite")
+        self.inviteFriendBtn.clicked.connect(self.inviteFriend)
+        self.inviteFriendBtn.hide()
+        self.inviteGroupName = None
 
         # 设置item_widget的布局，写成函数便于继承重写
         self.set_distribution()
@@ -256,6 +277,7 @@ class customContactItem(QTreeWidgetItem):
                 index = i
                 break
         parent_item.takeChild(index)
+
 
         self.isGroup = False
         if  index == 1:
@@ -282,15 +304,88 @@ class customContactItem(QTreeWidgetItem):
         parent_item.takeChild(index)
     
 
+
+        self.isGroup =False
+        if  index == 1:
+            self.isGroup = True
+        # 发送信号从数据库删除联系人或群组
+
+    def inviteFriend(self):
+        # self.name self.inviteGroupName 可用
+        pass
+
+
     def set_distribution(self):
         # 设置布局
         self.hbox = QHBoxLayout()
         self.hbox.addWidget(self.avatorLabel)
         self.hbox.addWidget(self.nameLabel)
         self.hbox.addWidget(self.deleteContactBtn)
+        self.hbox.addWidget(self.inviteFriendBtn)
         self.hbox.addStretch(1)     # 抄来的 不知道什么意思
         # 布局添加到widget
         self.widget.setLayout(self.hbox)
+
+class customGroupMemberItem(QWidget):
+    def __init__(self, name, img, isManager = False, isBoss = False, parent = None):
+        super().__init__(parent)
+        
+        self.name = name
+        self.img = img
+        self.isManager = isManager
+        self.isBoss = isBoss
+        self.groupName = None
+
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.avatarLabel  = QLabel()
+        self.avatarLabel.setPixmap(QPixmap(img).scaledToWidth(100))
+        self.layout.addWidget(self.avatarLabel)
+
+        self.nameLabel = QLabel(name)
+        self.layout.addWidget(self.nameLabel)
+        
+        self.addManagerBtn = QPushButton("addManager")
+        self.addManagerBtn.clicked.connect(self.addManager)
+        self.addManagerBtn.hide()
+        self.removeMemberBtn = QPushButton("removeMember")
+        self.removeMemberBtn.clicked.connect(self.removeMember)
+        self.removeMemberBtn.hide()
+        self.addManagerBtn.setEnabled(False)
+        self.removeMemberBtn.setEnabled(False)
+        
+        self.layout.addWidget(self.addManagerBtn)
+        self.layout.addWidget(self.removeMemberBtn)
+
+
+        # self.setSizeHint(self.widget.sizeHint())
+        # self.setData(Qt.displayRole, widget)
+
+    # 融合了添加管理者和删除管理者
+    def addManager(self):
+        # 添加
+        if self.addManagerBtn.text() == "addManager":
+            pass
+        
+        # 删除
+        else:
+
+            
+            pass
+        # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
+        global UPDATEGROUP
+        UPDATEGROUP = True
+        
+    # 写删除群成员的逻辑
+    def removeMember(self):
+        # self.name 成员名字 self.groupName群名字
+
+        # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
+        global UPDATEGROUP
+        UPDATEGROUP = True
+        pass
+
 
 # Contact页面,好友用户ListWidget的填充 自定义Item
 class customContactQlistWidgetItem(QListWidgetItem):
@@ -339,6 +434,75 @@ class customContactQlistWidgetItem(QListWidgetItem):
         self.hbox.addStretch(1)     # 抄来的 不知道什么意思
         # 布局添加到widget
         self.widget.setLayout(self.hbox)
+
+class customGroupValidationItem(QListWidgetItem):
+    def __init__(self, name, dateTime, isSolved = False, isAccepted = None):
+        super().__init__()
+        self.name = name
+        self.dateTime = dateTime
+        self.isSolved = isSolved 
+        self.isAccepted = isAccepted
+        self.groupName = None
+
+        self.timeLabel = QLabel(self.dateTime.strftime("%Y-%m-%d, %H:%M:%S"))
+        self.validationMsgLabel = QLabel(
+            "\"{}\" wants to join your group" .format(self.name)
+        )
+        self.allowJoinBtn = QPushButton()
+        self.allowJoinBtn.setText("Allow")
+        self.allowJoinBtn.clicked.connect(self.allowJoin)
+        self.rejectJoinBtn = QPushButton()
+        self.rejectJoinBtn.setText("Reject")
+        self.rejectJoinBtn.clicked.connect(self.rejectJoin)
+        self.stateBtn = QPushButton()
+        self.stateBtn.setEnabled(False)
+        self.stateBtn.hide()
+        if self.isSolved :
+            if self.isAccepted:
+                self.stateBtn.setText("Already Accpeted")
+            else:
+                self.stateBtn.setText("Already Rejected")
+        
+        # 设置item_widget的布局，写成函数便于继承重写
+        self.setDistribution()
+        # 设置自定义sizehint，否则无法显示 抄来的 不知道为什么
+        self.setSizeHint(self.widget.sizeHint())
+
+    def setDistribution(self):
+        self.widget = QWidget()
+        self.layout = QVBoxLayout()
+
+        self.downWidget = QWidget()
+        self.downLayout = QHBoxLayout()
+        self.downLayout.addWidget(self.validationMsgLabel)
+        self.downLayout.addWidget(self.allowJoinBtn)
+        self.downLayout.addWidget(self.rejectJoinBtn)
+        self.downLayout.addWidget(self.stateBtn)
+        # 默认为显示未解决验证，若给已验证的信息，则如下
+        if self.isSolved:
+            self.allowJoinBtn.hide()
+            self.rejectJoinBtn.hide()
+            self.stateBtn.show()
+        self.downWidget.setLayout(self.downLayout)
+
+        self.layout.addWidget(self.timeLabel)
+        self.layout.addWidget(self.downWidget)
+        self.widget.setLayout(self.layout)
+
+    # 拒绝加入
+    def rejectJoin(self):
+        # self.name self.groupName 可用
+        # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
+        global UPDATEGROUP
+        UPDATEGROUP = True
+        pass
+
+    def allowJoin(self):
+        # self.name self.groupName 可用
+        # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
+        global UPDATEGROUP
+        UPDATEGROUP = True
+        pass
 
 # 聊天列表界面的Item填充
 class customChatItem(QListWidgetItem):
@@ -425,6 +589,7 @@ class chatBubble(QWidget):
                  is_unread = False, parent = None, isFile = False, isVoiceMsg = False):
         super().__init__(parent)
         # 美工部分 设置气泡颜色 字体
+
         self.content = content 
         self.name = name 
         self.date = date 
@@ -436,9 +601,14 @@ class chatBubble(QWidget):
         self.setStyleSheet("background-color: red;\
                             border-radius: 10px\
                            padding: 10px")
+
         
         msgTitle = QLabel(name +":  at " + date.strftime("%Y-%m-%d, %H:%M:%S") )
+        
         msgLabel = QLabel(content)
+        msgLabel.setStyleSheet("background-color: #E7E7EB;\
+                            border-radius: 10px;\
+                           padding: 10px")
         msgLabel.setWordWrap(True)
 
         recvFileBtn = QPushButton()
@@ -493,6 +663,7 @@ class chatBubble(QWidget):
             # 在这里实现文件接收的逻辑
             print("保存文件的路径：", FILE_PATH)
         else :
+            USERNAME
             pass
         STOP_UPDATE = False
 
@@ -522,8 +693,11 @@ class chatBubble(QWidget):
 class mainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None, userName = None ):
         super(mainWindow, self).__init__(parent)
-        
         self.setupUi(self)
+        global UPDATEGROUP
+
+        # 设置标题
+        self.setWindowTitle("BlazIngChaT")
         # 好友列表的设置
         self.userName = userName
         self.contactListStack.setWindowFlags(QtCore.Qt.FramelessWindowHint)
@@ -533,8 +707,18 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.chatMsgList.setSelectionMode(QAbstractItemView.SingleSelection)
         # self.contactFriendList.setSelectionMode(QAbstractItemView.SingleSelection)
         self.contactsList.setSelectionMode(QAbstractItemView.SingleSelection)
+        # showContactPage配置
+        self.showContactPage.hide()
+        #  createGrpouBtn配置
+        self.setCreateGroupBtn()
+        self.createGroupBtn.clicked.connect(self.createGroup)
+        # groupMemberPage的配置
+        self.setGroupMemberPage()
         # 设置chatMsgBrowser为气泡聊天界面显示
         self.setChatMsgBrowser()
+        # GPT人物设置界面的配置
+        print(self.characterSettingPage)
+        # self.characterSettingPage.hide()
         # 草函数 使得列表转向搜索or添加
         self.addAccountBtn.clicked.connect(self.contactListStackSwitch)
         # 槽函数 返回搜索结果
@@ -553,6 +737,31 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.ChangeInformation.clicked.connect(self.informationClicked)
         #槽函数 上传头像
         self.uploadAvatarBtn.clicked.connect(self.uploadAvatar)
+        #---
+        # 槽函数 同意拒绝好友申请
+        self.acceptBtn.clicked.connect(self.accept_friend_request)
+        self.rejectBtn.clicked.connect(self.reject_friend_request)
+        # 槽函数 进入语音聊天
+        self.VoiceCallBtn.clicked.connect(self.intoVoicecall)
+        # 槽函数 语音转文字
+        # self.TransformBtn.clicked.connect(self.transform)
+        # 槽函数 发送语音
+        # self.sendVoiceBtn.clicked.connect(self.sendvoice)
+        #---
+
+
+        # 槽函数 显示群信息界面
+        self.contactsList.itemSelectionChanged.connect(self.showGroupInfo)
+        # cao函数 显示群管理界面
+        self.manageGroupMemberOn = False
+        self.manageGroupMemberBtn.clicked.connect(self.manageGroupMember)
+        # 槽函数 群聊邀请好友
+        self.inviteFriendOn = False
+        self.members = None
+        self.inviteGroupMemberBtn.clicked.connect(self.inviteGroupMember)
+        # 槽函数 退出群聊
+        self.quitGroupBtn.clicked.connect(self.quitGroup)
+
         # ------------以上为Ui设置
 
         # 获取个人信息
@@ -567,6 +776,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.information = Information()
         self.information.show()
         self.information.exec_()
+    
     # 关于Browser的一些补充设置
     def setChatMsgBrowser(self):
         self.chatMsgBrowser.setWidgetResizable(True)
@@ -576,7 +786,181 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         container_layout.addStretch()
         container_widget.setLayout(container_layout)
         self.chatMsgBrowser.setWidget(container_widget)
+    
+    # groupMemberPage的一些补充设置
+    def setGroupMemberPage(self):
+        self.groupMemberPage\
+            .verticalHeader().setDefaultSectionSize(150)
+        self.groupMemberPage\
+            .horizontalHeader().setDefaultSectionSize(120)
+        self.groupMemberPage\
+            .verticalHeader().setVisible(False)
+        self.groupMemberPage\
+            .horizontalHeader().setVisible(False)
+        self.groupMemberPage\
+            .setStyleSheet("QTableWidget { border: none; }")
+
+    # 管理群组按键的槽函数
+    def manageGroupMember(self):
+        if self.manageGroupMemberOn == False:
+            for row in range(self.groupMemberPage.rowCount()):
+                for column in range(self.groupMemberPage.columnCount()):
+                    item = self.groupMemberPage.cellWidget(row, column)
+                    if item == None:
+                        break
+                    else :
+                        item.addManagerBtn.show()
+                        item.removeMemberBtn.show()
+        else:
+            for row in range(self.groupMemberPage.rowCount()):
+                for column in range(self.groupMemberPage.columnCount()):
+                    item = self.groupMemberPage.cellWidget(row, column)
+                    if item == None:
+                        break
+                    else :
+                        item.addManagerBtn.hide()
+                        item.removeMemberBtn.hide()
+        self.manageGroupMemberOn = not self.manageGroupMemberOn
+
+    # 显示群信息界面
+    def showGroupInfo(self):
+        items:customContactItem = self.contactsList.selectedItems()
+        item = items[0]
+        self.manageContactsOn = False
+        # 当所选择的是群组时，显示群信息界面
+        if item.parent() == self.contactsList.topLevelItem(1):
+            self.showContactPage.show()
+            self.showContactPage.setTitle(item.name)
+
+            
+            # self.groupApplyPage.clear()
+            self.loadGroupMember()
+            self.loadGroupValidation()
+
+        else :
+            self.showContactPage.hide()
+
+    # 显示群成员界面
+    def loadGroupMember(self ):
+        # 在此处获服务器信息 希望得到的信息类似如下 并且无脑设了整个类上的全局变量
+        boss = "123"
+        managers = ["123", "A"]
+        member1 = {
+            "name" : "123", 
+            "img" : "pic.jpg", 
+            "isManager": True,
+            "isBoss": True
+        }
+        member2 = {
+            "name" : "A", 
+            "img" : "pic.jpg", 
+            "isManager": True,
+            "isBoss": False
+        }
+        member3 = {
+            "name" : "B", 
+            "img" : "pic.jpg", 
+            "isManager": False,
+            "isBoss": False
+        }
+        members = [member1, member2, member3]
+        self.members = members
+        self.managers = managers
+        self.boss = boss
         
+        self.groupMemberPage.clear()
+        self.groupMemberPage.setColumnCount(5)
+        size = len(members)
+        self.groupMemberPage.setRowCount(size // 5 if size % 5 == 0 else size //5 + 1 )
+        for row in range(self.groupMemberPage.rowCount()):
+            for column in range(self.groupMemberPage.columnCount()):
+                index = row*5 + column
+                if index >= size:
+                    break
+                item = customGroupMemberItem(** members[index])
+                item.groupName = self.showContactPage.title()
+
+                # 删除逻辑
+                # 若用户是管理者，则可以删除非管理者
+                if self.userInfo["userNameInfo"] in managers:
+                    # 若是群主 所有人随便删
+                    if self.userInfo["userNameInfo"] == boss and index > 0:
+                        item.removeMemberBtn.setEnabled(True)
+                    # 单纯的管理者只能删普通用户
+                    else:
+                        if  members[index]["name"] not in managers and \
+                            self.userInfo["userNameInfo"] != members[index]["name"]:
+                            item.removeMemberBtn.setEnabled(True)
+                # 若用户是群主，管理员设置
+                if self.userInfo["userNameInfo"] == boss:
+                    if members[index]["name"] in managers and index > 0:
+                        item.addManagerBtn.setText("removeManager")
+                        item.addManagerBtn.setEnabled(True)
+                    elif index > 0:
+                        item.addManagerBtn.setEnabled(True)
+
+                self.groupMemberPage.setCellWidget(row, column, item)
+
+    # 邀请群成员的switch函数
+    def inviteGroupMember(self):
+        member_names = [d.get('name') for d in self.members]
+        friendFather = self.contactsList.topLevelItem(0)
+        for i in range(friendFather.childCount()):
+            item =  friendFather.child(i)
+            if self.inviteFriendOn == False: 
+                item.inviteGourpName = self.showContactPage.title()
+                if item.name in member_names:
+                    item.inviteFriendBtn.setEnabled(False)
+                else:
+                    item.inviteFriendBtn.setEnabled(True)
+                item.inviteFriendBtn.show()
+            else:
+                item.inviteFriendBtn.hide()
+        self.inviteFriendOn = not self.inviteFriendOn
+
+    # 载入群聊的验证消息
+    def  loadGroupValidation(self):
+        self.groupValidationPage.clear()
+        # 期望在此处获得信息如下
+        validation1 = {
+            "name":  "A",
+            "dateTime" : datetime(2000,1,1,1,1,1),
+            "isSolved":True,
+            "isAccepted": False
+        }
+        validation2 = {
+            "name":  "Bqweqweqweqweqweqweqwe",
+            "dateTime" : datetime(2000,1,1,1,1,1),
+            "isSolved":False,
+            "isAccepted": None
+        }
+        validations = [validation1, validation2]
+
+        self.groupName = self.showContactPage.title()
+        size = len(validations)
+        for i in range(size):
+            item = customGroupValidationItem(**validations[i])
+            item.groupName = self.showContactPage.title()
+            self.groupValidationPage.insertItem(-1, item)
+            self.groupValidationPage.setItemWidget(item, item.widget)
+
+    # 发送退群消息给服务器
+    def quitGroup(self):
+        self.groupName = self.showContactPage.title()
+        pass
+    
+    def createGroup(self):
+        print("clicked")
+        dialog = createGroupDialog()
+        dialog.show()
+        dialog.exec_()
+
+    # 设置创建群按钮的样式
+    def setCreateGroupBtn(self):
+        self.createGroupBtn.setStyleSheet("QPushButton { border: none; \
+                                    color: blue; \
+                                    text-decoration: underline; }")
+
     # 在新界面清除Browser的内容    
     def chatMsgBrowserClear(self):
         container_layout = self.chatMsgBrowser.widget().layout()
@@ -657,7 +1041,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.secureAnswerInfo.textCursor().insertText(self.userInfo["secureAnswerInfo"])
         self.ipInfo.setText(self.userInfo["ipInfo"])
 
-    # 用户向服务器上传头像
+    # 用户向服务器上传文件
     def uploadAvatar(self):
         global STOP_UPDATE
         STOP_UPDATE = True
@@ -715,11 +1099,23 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     def showChat(self,cur_item):
         # 设置聊天头
         self.showMsgPage.setTitle(cur_item.nameLabel.text())
+
+
+        #GPT人设的特殊功能
+        if cur_item.nameLabel.text() == "A" :
+            pass
+            # self.characterSettingPage.show()
+
+        if self.last_item != None and self.last_item.nameLabel.text() == "A"\
+            and cur_item.nameLabel.text() != "A":
+            pass
+            # self.characterSettingPage.hide()
+
         # 设置显示界面
         # self.chatMsgBrowserClear()
         self.showMsg(cur_item)
         self.showMsgPage.show()
-
+        self.last_item = cur_item
 
     # 从一个item获得所有消息  或者仅输入一条消息 参数只写一个！！！
     def showMsg(self, item = None, single_msg = None, position = 0):  
@@ -881,6 +1277,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             self.chatMsgList.setItemWidget(item, item.widget)
 
     # 期望在这个函数获得新的聊天记录形成items，与原来的比较后，更新
+
     def reLoadChatList(self, friends,groups): 
         print("___________________________UPDATE START__________________________")
         names = friends + groups
@@ -921,6 +1318,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # lsFriend = [{"name": "A", "img":  "./pic.jpg","new_msg":  all_msg_A}, \
         #             {"name": "B", "img": "./pic.jpg", "new_msg": all_msg_B}, \
         #             {"name": "C", "img":  './pic.jpg',"new_msg": all_msg_C}]
+
 
         # 以上为测试 生成lsFriend 即可
         #  all_msg处只用写入新的消息!!!!!!!!! 
@@ -1027,6 +1425,69 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             groupFather.addChild(item) 
             self.contactsList.setItemWidget(item, 0, item.widget)
 
+        item = QTreeWidgetItem()
+
+
+    # 接受好友请求
+    def accept_friend_request(self):
+        selected_item = self.contactFriendList_2.currentItem()
+        if selected_item:
+            friend_request = selected_item.text()
+            # 从列表框和列表中移除好友申请
+            self.contactFriendList_2.takeItem(self.contactFriendList_2.row(selected_item))
+            # self.friend_requests.remove(friend_request)
+            # TODO: 执行同意操作的逻辑
+    #拒拒绝好友请求
+    def reject_friend_request(self):
+        selected_item = self.contactFriendList_2.currentItem()
+        if selected_item:
+            friend_request = selected_item.text()
+            # 从列表框和列表中移除好友申请
+            self.contactFriendList_2.takeItem(self.contactFriendList_2.row(selected_item))
+            # self.friend_requests.remove(friend_request)
+            # TODO: 执行拒绝操作的逻辑
+    # 打开语音通话
+    def intoVoicecall(self): #进入语音聊天
+        self.call = Voicecall()
+        str = "用户名" # TODO str为你所对话的用户名
+        self.call.name.setText("您正在与"+str+"语音通话中")
+        self.call.show()
+        self.call.exec_()
+    #语音转文字
+    def transform(self): 
+        pass
+        # 语音转文字
+        # if start_end :
+            # 开始录音
+            # start_end = False
+        # else :
+            # 结束录音
+            # start_end = True
+            # str = "转换后的文字" # TODO str 为转换后结果
+            # self.chatMsgEdit.setText(str)
+
+    # def sendvoice(self): # 发送语音
+        # if start_end :
+            # 开始录音
+            # start_end = False
+        # else :
+            # 结束录音
+            # start_end = True
+            # 发送语音   # TODO 发送语音
+
+
+class Voicecall(QDialog, Ui_Voicecall):
+    def __init__(self, parent=None):
+        super(Voicecall, self).__init__(parent)
+        self.setupUi(self)
+        self.DownBtn.clicked.connect(self.stopcall)
+
+    def stopcall(self):
+        # TODO 添加挂断电话的逻辑
+        self.close()
+
+
+
 
 
 # 更新窗口的触发器
@@ -1035,10 +1496,11 @@ class mainWindowUpdater():
         self.mainwindow = mainwindow
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateMainWindow)
-        self.timer.start(5000)# 5 s
+        self.timer.start(10000)# 5 s
 
     def updateMainWindow(self):
         
+
         if STOP_UPDATE == False:
             print("updateCalled")
             # 在这里写更新的接口，接收服务端的某个信号，说明该用户与某些用户的消息更新了，给定参数names
@@ -1088,6 +1550,15 @@ class mainWindowUpdater():
         else :
             return False 
 
+        # if updateContacts():
+        global UPDATEGROUP
+        if UPDATEGROUP:
+            mainwindow.showGroupInfo()
+            UPDATEGROUP = False
+
+        self.mainwindow.loadContactsList()
+
+
 
         
 # 登录界面
@@ -1095,9 +1566,29 @@ class loginWindow(QDialog, Ui_LoginDialog):
     def __init__(self, parent=None):
         super(loginWindow, self).__init__(parent)
         self.setupUi(self)
+        self.setWindowTitle("BlazIngChaT")
         self.loginBtn.clicked.connect(self.match)
         self.registerBtn.clicked.connect(self.intoRegister)
-        
+        pix = QPixmap("./title.png")
+        self.label_3.setPixmap(pix)
+        self.label_3.setScaledContents(True)
+   #    self.faceBtn.clicked.connect(self.useface)
+
+    def useface(self):
+        pass
+        # self.usrLineEdit.text() 是用户名
+        # TODO 人脸识别
+        # if self.usrLineEdit.text() == "":
+        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户名不得为空')
+        #  msg_box.exec_()
+        # elif 未录入人脸 :
+        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户未录入人脸')
+        #  msg_box.exec_()
+        # elif 人脸识别失败 :
+        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '人脸识别失败')
+        #  msg_box.exec_()
+        # else:
+        #   self.accept()
     def intoRegister(self):
         self.regist = Register()
         self.regist.show()
@@ -1127,7 +1618,6 @@ class loginWindow(QDialog, Ui_LoginDialog):
         else :
             self.pwdLineEdit.clear()
             self.pwdLineEdit.setFocus()
-
 # 注册界面
 class Register(QDialog, Ui_Register):
     def __init__(self, parent=None):
@@ -1183,6 +1673,23 @@ class Information(QDialog, Ui_Information):
                 self.close()
 
 
+class createGroupDialog(QDialog, Ui_createGroupDialog):
+    def __init__(self, parent = None):
+        super(createGroupDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.confirmBtn.setEnabled(False)
+        self.confirmBtn.clicked.connect(self.createGroup)
+        self.lineEdit.textEdited.connect(self.enableConfirm)
+
+    def enableConfirm(self):
+        self.confirmBtn.setEnabled(True)
+
+    def createGroup(self):
+        groupName = self.lineEdit.text()
+
+
+
+
 if __name__ == '__main__':
     # global client_sock
     SERVER_IP = "127.0.0.1" 
@@ -1199,6 +1706,8 @@ if __name__ == '__main__':
         exit()
 
 
+
+    UPDATEGROUP =False
 
     app = QApplication(sys.argv)
 

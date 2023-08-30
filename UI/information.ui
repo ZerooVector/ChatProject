@@ -97,6 +97,9 @@
      <height>25</height>
     </rect>
    </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Password</enum>
+   </property>
   </widget>
   <widget class="QLineEdit" name="NewPassword">
    <property name="geometry">
@@ -107,6 +110,9 @@
      <height>25</height>
     </rect>
    </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Password</enum>
+   </property>
   </widget>
   <widget class="QLineEdit" name="ConfirmLineEdit">
    <property name="geometry">
@@ -116,6 +122,9 @@
      <width>161</width>
      <height>25</height>
     </rect>
+   </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Password</enum>
    </property>
   </widget>
  </widget>
