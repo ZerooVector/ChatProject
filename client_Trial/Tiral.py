@@ -8,12 +8,12 @@ from datetime import datetime
 # from PyQt5.QtCore import *QAbstractItemView.SingleSelection
 from PyQt5.QtGui import QPainter,QPixmap
 
-from createGroupDialog_ui import Ui_createGroupDialog
-from logindialog_ui import Ui_LoginDialog
-from untitled_test_basic_ui import Ui_MainWindow
-from register_ui import Ui_Register 
-from information_ui import Ui_Information
-
+from UI.createGroupDialog_ui import Ui_createGroupDialog
+from UI.logindialog_ui import Ui_LoginDialog
+from UI.untitled_test_basic_ui import Ui_MainWindow
+from UI.register_ui import Ui_Register 
+from UI.information_ui import Ui_Information
+from UI.Voicecall_ui import Ui_Voicecall
 
 ###########################
 import socket
@@ -556,8 +556,11 @@ class chatBubble(QWidget):
 class mainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None, userName = None ):
         super(mainWindow, self).__init__(parent)
-        global UPDATEGROUP
         self.setupUi(self)
+        global UPDATEGROUP
+
+        # 设置标题
+        self.setWindowTitle("BlazIngChaT")
         # 好友列表的设置
         self.contactListStack.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.contactListStack_showPageAdd = False
@@ -596,6 +599,19 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.ChangeInformation.clicked.connect(self.informationClicked)
         #槽函数 上传头像
         self.uploadAvatarBtn.clicked.connect(self.uploadAvatar)
+        #---
+        # 槽函数 同意拒绝好友申请
+        self.acceptBtn.clicked.connect(self.accept_friend_request)
+        self.rejectBtn.clicked.connect(self.reject_friend_request)
+        # 槽函数 进入语音聊天
+        self.VoiceCallBtn.clicked.connect(self.intoVoicecall)
+        # 槽函数 语音转文字
+        # self.TransformBtn.clicked.connect(self.transform)
+        # 槽函数 发送语音
+        # self.sendVoiceBtn.clicked.connect(self.sendvoice)
+        #---
+
+
         # 槽函数 显示群信息界面
         self.contactsList.itemSelectionChanged.connect(self.showGroupInfo)
         # cao函数 显示群管理界面
@@ -1104,6 +1120,69 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
         item = QTreeWidgetItem()
 
+
+    # 接受好友请求
+    def accept_friend_request(self):
+        selected_item = self.contactFriendList_2.currentItem()
+        if selected_item:
+            friend_request = selected_item.text()
+            # 从列表框和列表中移除好友申请
+            self.contactFriendList_2.takeItem(self.contactFriendList_2.row(selected_item))
+            # self.friend_requests.remove(friend_request)
+            # TODO: 执行同意操作的逻辑
+    #拒拒绝好友请求
+    def reject_friend_request(self):
+        selected_item = self.contactFriendList_2.currentItem()
+        if selected_item:
+            friend_request = selected_item.text()
+            # 从列表框和列表中移除好友申请
+            self.contactFriendList_2.takeItem(self.contactFriendList_2.row(selected_item))
+            # self.friend_requests.remove(friend_request)
+            # TODO: 执行拒绝操作的逻辑
+    # 打开语音通话
+    def intoVoicecall(self): #进入语音聊天
+        self.call = Voicecall()
+        str = "用户名" # TODO str为你所对话的用户名
+        self.call.name.setText("您正在与"+str+"语音通话中")
+        self.call.show()
+        self.call.exec_()
+    #语音转文字
+    def transform(self): 
+        pass
+        # 语音转文字
+        # if start_end :
+            # 开始录音
+            # start_end = False
+        # else :
+            # 结束录音
+            # start_end = True
+            # str = "转换后的文字" # TODO str 为转换后结果
+            # self.chatMsgEdit.setText(str)
+
+    # def sendvoice(self): # 发送语音
+        # if start_end :
+            # 开始录音
+            # start_end = False
+        # else :
+            # 结束录音
+            # start_end = True
+            # 发送语音   # TODO 发送语音
+
+
+class Voicecall(QDialog, Ui_Voicecall):
+    def __init__(self, parent=None):
+        super(Voicecall, self).__init__(parent)
+        self.setupUi(self)
+        self.DownBtn.clicked.connect(self.stopcall)
+
+    def stopcall(self):
+        # TODO 添加挂断电话的逻辑
+        self.close()
+
+
+
+
+
 # 更新窗口的触发器
 class mainWindowUpdater:
     def __init__(self, mainwindow:mainWindow) -> None:
@@ -1135,9 +1214,29 @@ class loginWindow(QDialog, Ui_LoginDialog):
     def __init__(self, parent=None):
         super(loginWindow, self).__init__(parent)
         self.setupUi(self)
+        self.setWindowTitle("BlazIngChaT")
         self.loginBtn.clicked.connect(self.match)
         self.registerBtn.clicked.connect(self.intoRegister)
-        
+        pix = QPixmap("./title.png")
+        self.label_3.setPixmap(pix)
+        self.label_3.setScaledContents(True)
+   #    self.faceBtn.clicked.connect(self.useface)
+
+    def useface(self):
+        pass
+        # self.usrLineEdit.text() 是用户名
+        # TODO 人脸识别
+        # if self.usrLineEdit.text() == "":
+        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户名不得为空')
+        #  msg_box.exec_()
+        # elif 未录入人脸 :
+        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户未录入人脸')
+        #  msg_box.exec_()
+        # elif 人脸识别失败 :
+        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '人脸识别失败')
+        #  msg_box.exec_()
+        # else:
+        #   self.accept()
     def intoRegister(self):
         self.regist = Register()
         self.regist.show()
@@ -1167,7 +1266,6 @@ class loginWindow(QDialog, Ui_LoginDialog):
         else :
             self.pwdLineEdit.clear()
             self.pwdLineEdit.setFocus()
-
 # 注册界面
 class Register(QDialog, Ui_Register):
     def __init__(self, parent=None):
