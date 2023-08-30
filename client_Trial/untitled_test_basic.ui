@@ -30,7 +30,9 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+
+     <number>0</number>
+
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -122,7 +124,7 @@
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>350</y>
+             <y>320</y>
              <width>631</width>
              <height>31</height>
             </rect>
@@ -141,9 +143,9 @@
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>374</y>
+             <y>350</y>
              <width>631</width>
-             <height>121</height>
+             <height>141</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -187,13 +189,39 @@
               <height>319</height>
              </rect>
             </property>
+            <widget class="QWidget" name="characterSettingPage" native="true">
+             <property name="geometry">
+              <rect>
+               <x>300</x>
+               <y>270</y>
+               <width>246</width>
+               <height>50</height>
+              </rect>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <item>
+               <widget class="QLineEdit" name="characterSettingEdit">
+                <property name="placeholderText">
+                 <string>Chatacter Setting</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="confirmCharacterBtn">
+                <property name="text">
+                 <string>Confirm</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
            </widget>
           </widget>
           <widget class="QPushButton" name="pushButton">
            <property name="geometry">
             <rect>
              <x>10</x>
-             <y>350</y>
+             <y>320</y>
              <width>50</width>
              <height>32</height>
             </rect>
@@ -206,7 +234,7 @@
            <property name="geometry">
             <rect>
              <x>80</x>
-             <y>350</y>
+             <y>320</y>
              <width>97</width>
              <height>32</height>
             </rect>
@@ -312,7 +340,7 @@
        <number>0</number>
       </property>
       <widget class="QWidget" name="contactFriendPage">
-       <layout class="QVBoxLayout" name="verticalLayout">
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="1,1">
         <item>
          <widget class="QPushButton" name="manageContactsBtn">
           <property name="text">
@@ -321,22 +349,47 @@
          </widget>
         </item>
         <item>
-         <widget class="QTreeWidget" name="contactsList">
-          <column>
-           <property name="text">
-            <string>Contacts</string>
+         <widget class="QWidget" name="widget_2" native="true">
+          <widget class="QPushButton" name="createGroupBtn">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>400</y>
+             <width>216</width>
+             <height>32</height>
+            </rect>
            </property>
-          </column>
-          <item>
            <property name="text">
-            <string>联系人</string>
+            <string>i want to be group OWENR!</string>
            </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>群聊天</string>
+          </widget>
+          <widget class="QTreeWidget" name="contactsList">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>256</width>
+             <height>435</height>
+            </rect>
            </property>
-          </item>
+           <column>
+            <property name="text">
+             <string>Contacts</string>
+            </property>
+           </column>
+           <item>
+            <property name="text">
+             <string>联系人</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>群聊天</string>
+            </property>
+           </item>
+          </widget>
+          <zorder>contactsList</zorder>
+          <zorder>createGroupBtn</zorder>
          </widget>
         </item>
        </layout>
@@ -390,6 +443,83 @@
       <property name="title">
        <string>Contact Info</string>
       </property>
+      <widget class="QScrollArea" name="groupMemberPage2">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>30</y>
+         <width>621</width>
+         <height>212</height>
+        </rect>
+       </property>
+       <property name="widgetResizable">
+        <bool>true</bool>
+       </property>
+       <widget class="QWidget" name="scrollAreaWidgetContents_2">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>619</width>
+          <height>210</height>
+         </rect>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QTableWidget" name="groupMemberPage"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QPushButton" name="manageGroupMemberBtn">
+       <property name="geometry">
+        <rect>
+         <x>70</x>
+         <y>250</y>
+         <width>400</width>
+         <height>32</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>ManageGroupMember</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="quitGroupBtn">
+       <property name="geometry">
+        <rect>
+         <x>510</x>
+         <y>500</y>
+         <width>97</width>
+         <height>32</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>QuitGroup</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="inviteGroupMemberBtn">
+       <property name="geometry">
+        <rect>
+         <x>480</x>
+         <y>250</y>
+         <width>97</width>
+         <height>32</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Invite</string>
+       </property>
+      </widget>
+      <widget class="QListWidget" name="groupValidationPage">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>290</y>
+         <width>621</width>
+         <height>171</height>
+        </rect>
+       </property>
+      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="userInfoTable">
