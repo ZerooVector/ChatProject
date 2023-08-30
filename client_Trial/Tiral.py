@@ -728,11 +728,11 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             if self.last_item == item:
                 size =  len(item.all_msg) - len(self.all_msg) 
                 # 先做倒叙，再添加
-                print(size)
-                print(item.all_msg)
+                # print(size)
+                # print(item.all_msg)
                 for msg in item.all_msg[0:size][::-1]:
                     # position一定写-2， 不写-1，防止把自拓展的空白区域‘手齐’(sb输入法)掉
-                    print(msg)
+                    # print(msg)
                     self.showMsg(single_msg=msg, position = -2)
                 self.all_msg = item.all_msg.copy()
 
@@ -741,7 +741,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
                 self.all_msg = item.all_msg.copy()
                 self.chatMsgBrowserClear()
                 for msg in item.all_msg:
-                    print(msg)
+                    # print(msg)
                     self.showMsg(single_msg=msg)
         
         elif single_msg != None:
@@ -835,7 +835,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             send_msg(client_sock,"U02+"+item)
             response = ast.literal_eval(recv_msg(client_sock))
             all_msg = [] 
-            print(response)
+            # print(response)
             for thing in response:
                 
                 all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
@@ -850,7 +850,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             send_msg(client_sock,"U03+"+item)
             response = ast.literal_eval(recv_msg(client_sock))
             all_msg = [] 
-            print(response)
+            # print(response)
             for thing in response:
                 all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
             if len(all_msg) > 0:
@@ -882,6 +882,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
     # 期望在这个函数获得新的聊天记录形成items，与原来的比较后，更新
     def reLoadChatList(self, friends,groups): 
+        print("___________________________UPDATE START__________________________")
         names = friends + groups
         lsFriend = []
         if len(friends) > 0:
@@ -906,8 +907,8 @@ class mainWindow(QMainWindow, Ui_MainWindow):
                     all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
                 if len(all_msg) > 0:
                     lsFriend.append({"name":item,"img":None,"new_msg":all_msg})
-
-        print(lsFriend)
+        print("___________________________UPDATE END__________________________")
+        # print(lsFriend)
 
         # dt1 = datetime(2023, 8 , 20,12,32, 50 )
         # dt2 = datetime(2000,1,1,1,1,1)

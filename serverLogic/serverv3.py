@@ -1442,16 +1442,17 @@ def serversendfile(cursor,sock,userid,data,db_conn):
     strname = data
     # ftype = data[1]
     all_file = getallfile_(cursor,userid)
-    if strname not in all_file:
-        send_msg(sock,"T03+ERROR")
+    # if strname not in all_file:
+        # send_msg(sock,"T03+ERROR")
         # send_msg(sock,"You cannot recieve this file!")
-    else :
-        savepath = FILE_PATH +  strname 
-        if not os.path.exists(savepath):
-            send_msg(sock,"T03+ERROR")
+    
+    savepath = FILE_PATH +  strname 
+    if not os.path.exists(savepath):
+        send_msg(sock,"T03+ERROR")
             # send_msg(sock,"File not Exist!")
-            print(f"File {savepath} does not exist!")  # client checks the file is or not exist 
-            return
+        print(f"File {savepath} does not exist!")  # client checks the file is or not exist 
+        return
+    else:
     # pause_event.clear()
         # send_msg(sock,"T03+CONTINUE")
         cmd ='''
