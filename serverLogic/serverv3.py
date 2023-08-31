@@ -7,20 +7,20 @@ import time
 import sqlite3
 import datetime as dt 
 import os 
-# import openai 
-# import torch
-# import numpy as np
-# from transformers.models.gpt2 import GPT2LMHeadModel
-# from transformers import BertTokenizer
+import openai 
+import torch
+import numpy as np
+from transformers.models.gpt2 import GPT2LMHeadModel
+from transformers import BertTokenizer
 import sys
 # sys.path.append("..")
-# from model import GPT2
-# import cv2
+from model import GPT2
+import cv2
 # import os
-# from PIL import Image
+from PIL import Image
 # import torch
 # import numpy as np
-# from facenet_pytorch import MTCNN, InceptionResnetV1
+from facenet_pytorch import MTCNN, InceptionResnetV1
 
 
 DB_PATH = "/home/syh/MyProjects/temp/serverLogic/server.db"
@@ -31,22 +31,22 @@ GPT_PERSONA_PATH = "/home/syh/MyProjects/temp/serverLogic/filefolder/"
 
 os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-# openai.api_key = "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" 
+openai.api_key = "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" 
 
 
-# device = torch.device("cpu")
-# tokenizer = BertTokenizer.from_pretrained("/home/syh/MyProjects/temp/serverLogic/gpt2-chinese-cluecorpussmall")
+device = torch.device("cpu")
+tokenizer = BertTokenizer.from_pretrained("/home/syh/MyProjects/temp/serverLogic/gpt2-chinese-cluecorpussmall")
 
-# model1 = GPT2().to(device)
-# model1.eval()
-# model1.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT2.pt",map_location=torch.device('cpu')),False)
+model1 = GPT2().to(device)
+model1.eval()
+model1.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT3.pt",map_location=torch.device('cpu')),False)
 
-# model2 = GPT2().to(device)
-# model2.eval()
-# model2.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT3.pt",map_location=torch.device('cpu')),False)
+model2 = GPT2().to(device)
+model2.eval()
+model2.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT2.pt",map_location=torch.device('cpu')),False)
 
 
-# resnet = InceptionResnetV1(pretrained='vggface2').eval()
+resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 
 current_online = []
@@ -257,6 +257,18 @@ def signup(cursor,sock,data,db_conn):
         cursor.execute(cmd,(input_id,input_nickname,input_password,"offline",))
         db_conn.commit()
         send_msg(sock,"L00+SUCCESS")
+        ct1 = dt.datetime.now()
+        cmd = '''
+            INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
+            VALUES(?,?,?,?,?,?,?)
+        '''
+        cursor.execute(cmd,(input_id,"activate","Customized GPT","hi",ct1,"activate","chatto"))
+        cursor.execute(cmd,(input_id,"activate","Customized GPT","hi",ct1,"activate","chatfrom")) 
+        cursor.execute(cmd,(input_id,"activate","Little OP","hi",ct1,"activate","chatto"))
+        cursor.execute(cmd,(input_id,"activate","Little OP","hi",ct1,"activate","chatfrom"))
+        cursor.execute(cmd,(input_id,"activate","Crazy Dave","hi",ct1,"activate","chatto"))
+        cursor.execute(cmd,(input_id,"activate","Crazy Dave","hi",ct1,"activate","chatfrom")) # 插入我说的话
+        db_conn.commit()
         # send_msg(sock,"Successfully Sign Up!")
 
 
@@ -461,6 +473,17 @@ def dealwithrequest(cursor,sock,data,userid,db_conn):
         db_conn.commit() 
         # send_msg(sock,"F05+SUCCESS")
         # send_msg(sock,"You accept another user's request!")
+        current_time = dt.datetime.now()
+        current_time = str(current_time)
+        cmd = '''
+        INSERT INTO message(initial,via,terminal,type,unreadflag,datetime,content)
+        VALUES (?,?,?,?,?,?,?)
+        '''
+        content = "hi"
+        cursor.execute(cmd,(userid,"none",source,"chatfrom","activate",current_time,content))
+        cursor.execute(cmd,(userid,"none",source,"chatto","activate",current_time,content))
+        db_conn.commit()
+        
     else :
         cmd = '''
         UPDATE message 
@@ -545,6 +568,14 @@ def creategroup(cursor,sock,data,userid,db_conn): # G00;test;[A00,A01]
             '''
             cursor.execute(cmd,(input_id,userid))
             db_conn.commit()
+        current_time = str(current_time)
+        cmd = '''
+            INSERT INTO message(initial,via,terminal,type,unreadflag,datetime,content)
+            VALUES(?,?,?,?,?,?,?)
+        '''
+        for person in members:
+            cursor.execute(cmd,(userid,input_id,person,"chat","activate",current_time,"hi"))
+            db_conn.commit()
 
             # send_msg(sock,"G00+SUCCESS")
             # send_msg(sock,"Successfully Create a Group!")
@@ -608,43 +639,43 @@ def getpreviousmessage_(cursor,sock,userid,source,db_conn,clear = 1):
     cmd = '''
     SELECT initial, via, terminal, content,datetime FROM message
     WHERE 
-    (via = ?
-    AND type = ?
+    (
+     type = ?
     AND datetime < ?
     AND initial = ?
     AND terminal = ?)
     OR 
     (
-    via = ?
-    AND type = ?
+    
+    type = ?
     AND datetime < ?
     AND initial = ?
     AND terminal = ?
     )
     ORDER BY datetime ASC
     '''
-    cursor.execute(cmd,("none","chatto",current_time,source,userid,"none","chatfrom",current_time,userid,source))
+    cursor.execute(cmd,("chatto",current_time,source,userid,"chatfrom",current_time,userid,source))
     rows = cursor.fetchall()
     if clear == 1 :  # clear unread flag
         cmd = '''
         UPDATE message 
         SET unreadflag = ?
         WHERE 
-        (via = ?
-    AND type = ?
+        (
+    type = ?
     AND datetime < ?
     AND initial = ?
     AND terminal = ?)
     OR 
     (
-    via = ?
-    AND type = ?
+    
+    type = ?
     AND datetime < ?
     AND initial = ?
     AND terminal = ?
     )
         '''
-        cursor.execute(cmd,("release","none","chatto",current_time,source,userid,"none","chatfrom",current_time,userid,source))
+        cursor.execute(cmd,("release","chatto",current_time,source,userid,"chatfrom",current_time,userid,source))
     db_conn.commit()
     # res = [] 
     # for row in rows:
@@ -671,41 +702,41 @@ def getnewmessage_(cursor,sock,userid,source,db_conn):
     cmd = '''
     SELECT initial, via, terminal, content, datetime FROM message
     WHERE
-    (via = ?
-    AND type = ?
+    (
+     type = ?
     AND unreadflag = ?
     AND initial = ?
     AND terminal = ?)
     OR
-    (via = ?
-    AND type = ?
+    (
+     type = ?
     AND unreadflag = ?
     AND initial = ?
     AND terminal = ?
     )
     ORDER BY datetime ASC
     '''
-    cursor.execute(cmd,("none","chatto","activate",source,userid,"none","chatfrom","activate",userid,source))
+    cursor.execute(cmd,("chatto","activate",source,userid,"chatfrom","activate",userid,source))
     rows = cursor.fetchall()
     cmd =  '''
     UPDATE  message
     SET unreadflag = ?
     WHERE
-    (via = ?
-    AND type = ?
+    (
+type = ?
     AND unreadflag = ?
     AND initial = ?
     AND terminal = ?)
     OR
     (
-    via = ?
-    AND type = ?
+    
+type = ?
     AND unreadflag = ?
     AND initial = ?
     AND terminal = ?
     )
     '''
-    cursor.execute(cmd,("release","none","chatto","activate",source,userid,"none","chatfrom","activate",userid,source))  # release the flag
+    cursor.execute(cmd,("release","chatto","activate",source,userid,"chatfrom","activate",userid,source))  # release the flag
     db_conn.commit()
     # res = [] 
     # for row in rows:
@@ -930,6 +961,7 @@ def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
         return 
         # send_msg(sock,"G06+ERROR")
         # send_msg(sock,"You are not the manager of the group!")
+
     if respose =="Y" or respose == "y":
         cmd = '''
         UPDATE message 
@@ -947,8 +979,16 @@ def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
         '''
         cursor.execute(cmd,(group,user))
         db_conn.commit()
-        # send_msg(sock,"G06+SUCCESS")
-        # send_msg(sock,"You accept a user's request!")
+
+        content = "hi"
+        current_time = dt.datetime.now()
+        current_time = str(current_time)
+        cmd = '''
+        INSERT INTO message(initial,via,terminal,type,unreadflag,datetime,content)
+        VALUES(?,?,?,?,?,?,?)
+        '''
+        cursor.execute(cmd,(userid,group,user,"chat","activate",current_time,content))
+
     else :
         cmd = '''
         UPDATE message 
@@ -960,8 +1000,6 @@ def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
         '''
         cursor.execute(cmd,("refuse",user,group,"grouprq","activate"))
         db_conn.commit()
-        # send_msg(sock,"G06+SUCCESS")
-        # send_msg(sock,"You refuse a user's request!") 
 
 
 
@@ -1205,6 +1243,7 @@ def serverrecievefile(cursor,sock,userid,data,db_conn):
     current_time = dt.datetime.now() 
     current_time = str(current_time)
     cursor.execute(cmd,(originname,savename,userid,"none",target,ftype + "to","activate",current_time))
+    # cursor.execute(cmd,(originname,savename,target,"none",userid,ftype + "to","activate",current_time))
     # cursor.execute(cmd,(originname,savename,userid,"none",target,ftype + "from","activate",current_time))
     db_conn.commit()
     # send_msg(sock,"T02+SUCCESS")
@@ -1233,11 +1272,11 @@ def serverrecievefacefile_(cursor,sock,userid,db_conn,mode = "pattern"):   # 该
     if mode  == "pattern" :
         cursor.execute(cmd,(originname,savename,userid,"none","none","facefile","pattern",current_time))
         db_conn.commit()
-        send_msg(sock,"T10+SUCCESS")
+        # send_msg(sock,"T10+SUCCESS")
     if mode == "check":
         cursor.execute(cmd,(originname,savename,userid,"none","none","facefile","check",current_time))
         db_conn.commit()
-        send_msg(sock,"T10+SUCCESS")
+        # send_msg(sock,"T10+SUCCESS")
 
 
 def setpatternface(cursor,sock,userid,data,db_conn):
@@ -1278,14 +1317,14 @@ def setpatternface(cursor,sock,userid,data,db_conn):
     db_conn.commit() 
 
     # 接受10张全新的人脸
-    for i in range(10):
+    for i in range(1):
         serverrecievefacefile_(cursor,sock,userid,db_conn,mode = "pattern")
-    send_msg(sock,"R00+SUCCESS")
+    # send_msg(sock,"R00+SUCCESS")
 
 
 def checkfacelogin(cursor,sock,data,db_conn):
     userid = data  
-    for i in range(10):
+    for i in range(1):
         serverrecievefacefile_(cursor,sock,userid,db_conn,mode = "check")
     cmd = '''
     SELECT storagename FROM file 
@@ -1302,7 +1341,8 @@ def checkfacelogin(cursor,sock,data,db_conn):
         check_res.append(row[0])
 
     if len(check_res) == 0:
-        send_msg(sock,"Upload Failed!")
+        send_msg(sock,"RECOERR")
+        # send_msg(sock,"Upload Failed!")
         return 
 
 
@@ -1347,28 +1387,35 @@ def checkfacelogin(cursor,sock,data,db_conn):
 
     
     if len(pattern_res) == 0:
-        send_msg(sock,"You Have Not Upload Pattern Faces!")
+        send_msg(sock,"RECOERR")
+        # send_msg(sock,"You Have Not Upload Pattern Faces!")
         return 
     
+    if len(your_pattern_res) == 0:
+        send_msg(sock,"RECOERR")
+        return 
 
-    print(len(pattern_res))
+    print(pattern_res)
     # train_encode=[]
     imageMatrix = []
+    count = 0
     for item in pattern_res:
         full_path = os.path.join(FACE_PATH,item)
         # print(full_path)
         img = cv2.imread(full_path)
-
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 
         count += 1
         # img = cv2.imread(imgpath, cv2.IMREAD_GRAYSCALE)
         # 灰度图矩阵
         mats = np.array(img)
+        print(mats.shape)
         # 将灰度矩阵转换为向量
         imageMatrix.append(mats.ravel())
  
     imageMatrix = np.array(imageMatrix)# imageMatrix是图片矩阵；n X 40000 ,n为图片个数
+    print(imageMatrix.shape)
     from PIL import Image
     # 矩阵转置后每一列都是一个图像，40000 X n，对行求均值
     imageMatrix = np.transpose(imageMatrix)
@@ -1394,10 +1441,11 @@ def checkfacelogin(cursor,sock,data,db_conn):
     V_img_finall = V_img[:, :15]
 
     sim_list = [] 
-    for i in range(5):
+    for i in range(1):
         full_path = os.path.join(FACE_PATH,your_pattern_res[i])
         # print(full_path)
         img1 = cv2.imread(full_path)
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
         mats1 = np.array(img1)
         # 将灰度矩阵转换为向量
         sample_mats = mats1.ravel()
@@ -1406,6 +1454,7 @@ def checkfacelogin(cursor,sock,data,db_conn):
         full_path = os.path.join(FACE_PATH,check_res[i])
         # print(full_path)
         img2 = cv2.imread(full_path)
+        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
         mats2 = np.array(img2)
     # 将灰度矩阵转换为向量
         var_mats = mats2.ravel()
@@ -1414,10 +1463,10 @@ def checkfacelogin(cursor,sock,data,db_conn):
     sim_list = np.array(sim_list)
     mean_sim = np.mean(sim_list)
     if mean_sim <  100000000:
-        send_msg("RECOSUCCESS")
+        send_msg(sock,"RECOSUCCESS")
         return userid
     else :
-        send_msg("RECOFAIL")
+        send_msg(sock,"RECOFAIL")
         return None
 
 
@@ -1591,14 +1640,9 @@ def getnewfile_(cursor,sock,userid,source,ftype,db_conn):
     AND terminal = ?
     AND type = ?
     AND status = ?)
-    OR
-    (initial = ?
-    AND via = ?
-    AND terminal = ?
-    AND type = ?
-    AND status = ?)
+
     '''
-    cursor.execute(cmd,("release",source,"none",userid,ftype + "to","activate",userid,"none",source,ftype + "to","activate"))
+    cursor.execute(cmd,("release",source,"none",userid,ftype + "to","activate"))
     db_conn.commit() 
     return rows 
 
@@ -1798,14 +1842,16 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
     target = data[0] 
     content = data[1] 
 
-    if target == "GPT3.5":
+    if target == "Customized GPT":
         # 清空GPT的消息库
         ct1 = dt.datetime.now()
         cmd = '''
             INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
             VALUES(?,?,?,?,?,?,?)
             '''
-        cursor.execute(cmd,(userid,"activate","GPT3.5",content,ct1,"release","AIchat"))  # 插入我说的话
+        cursor.execute(cmd,(userid,"activate","Customized GPT",content,ct1,"activate","chatto"))
+        cursor.execute(cmd,(userid,"activate","Customized GPT",content,ct1,"activate","chatfrom"))  # 插入我说的话
+        # cursor.execute(cmd,("Customized GPT","activate",userid,content,ct1,"activate","AIchatfrom"))
         db_conn.commit() 
 
         myGPT.clear_messages() 
@@ -1815,15 +1861,16 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
         cmd = '''
         SELECT initial, content from message
         WHERE ((initial = ? AND terminal = ?) OR (initial = ? AND terminal = ?))
-        AND via = ?
+        AND via = ? AND type = ?
         ORDER BY datetime ASC 
         '''
         
-        cursor.execute(cmd,(userid,"GPT3.5","GPT3.5",userid,"activate")) 
+        cursor.execute(cmd,(userid,"Customized GPT","Customized GPT",userid,"activate","chatfrom")) 
+        
         rows = cursor.fetchall() # 获取过往的所有聊天记录
         # print(rows)
         for row in rows:
-            if row[0] == "GPT3.5" :
+            if row[0] == "Customized GPT" :
                 myGPT.add_message("assistant", row[1])
             elif row[0] == userid :
                 myGPT.add_message("user",row[1])
@@ -1831,8 +1878,8 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
         print(myGPT.messages)
         res = myGPT.get_response()
         if res[0:6] == "AITLE" or res[0:8] == "AIERROR":
-            send_msg(sock,"A02+ERROR")
-            send_msg(sock,"Time Limit Exceed or other error!")
+            # send_msg(sock,"A02+ERROR")
+            # send_msg(sock,"Time Limit Exceed or other error!")
             return 
         else :
             ct2 = dt.datetime.now()
@@ -1840,30 +1887,33 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
             INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
             VALUES(?,?,?,?,?,?,?)
             '''
-            cursor.execute(cmd,("GPT3.5","activate",userid,res,ct2,"activate","AIchat")) # 插入别人说的话
+            cursor.execute(cmd,(userid,"activate","Customized GPT",res,ct2,"activate","chatto"))
+            cursor.execute(cmd,(userid,"activate","Customized GPT",res,ct2,"activate","chatfrom"))
+            # cursor.execute(cmd,(userid,"activate","Customized GPT",res,ct2,"activate","AIchatto")) 
             db_conn.commit() 
-            send_msg(sock,"A02+SUCCESS")
-            send_msg(sock,"You have send a message to GPT3.5!")
+            # send_msg(sock,"A02+SUCCESS")
+            # send_msg(sock,"You have send a message to GPT3.5!")
 
 
-    elif target == "DIY1":
+    elif target == "Little OP":
         ct1 = dt.datetime.now()
         cmd = '''
             INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
             VALUES(?,?,?,?,?,?,?)
             '''
-        cursor.execute(cmd,(userid,"activate","DIY1",content,ct1,"release","AIchat"))  # 插入我说的话
+        cursor.execute(cmd,(userid,"activate","Little OP",content,ct1,"activate","chatto"))
+        cursor.execute(cmd,(userid,"activate","Little OP",content,ct1,"activate","chatfrom"))
         db_conn.commit() 
 
         commu_list = [] 
         cmd = '''
         SELECT initial, content from message
         WHERE ((initial = ? AND terminal = ?) OR (initial = ? AND terminal = ?))
-        AND via = ?
+        AND via = ? AND type = ?
         ORDER BY datetime ASC 
         '''
         
-        cursor.execute(cmd,(userid,"DIY1","DIY1",userid,"activate")) 
+        cursor.execute(cmd,(userid,"Little OP","Little OP",userid,"activate","chatfrom")) 
         rows = cursor.fetchall() # 获取过往的所有聊天记录
         for row in rows :
             commu_list.append(row[1])
@@ -1876,30 +1926,32 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
         INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
         VALUES(?,?,?,?,?,?,?)
         '''
-        cursor.execute(cmd,("DIY1","activate",userid,res,ct2,"activate","AIchat")) # 插入别人说的话
+        cursor.execute(cmd,(userid,"activate","Little OP",res,ct2,"activate","chatto"))
+        cursor.execute(cmd,(userid,"activate","Little OP",res,ct2,"activate","chatfrom"))
         db_conn.commit() 
-        send_msg(sock,"A02+SUCCESS")
-        send_msg(sock,"You have send a message to DIY1-AI!")
+        # send_msg(sock,"A02+SUCCESS")
+        # send_msg(sock,"You have send a message to DIY1-AI!")
 
 
-    elif target == "DIY2":
+    elif target == "Crazy Dave":
         ct1 = dt.datetime.now()
         cmd = '''
             INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
             VALUES(?,?,?,?,?,?,?)
             '''
-        cursor.execute(cmd,(userid,"activate","DIY2",content,ct1,"release","AIchat"))  # 插入我说的话
+        cursor.execute(cmd,(userid,"activate","Crazy Dave",content,ct1,"activate","chatto"))
+        cursor.execute(cmd,(userid,"activate","Crazy Dave",content,ct1,"activate","chatfrom"))
         db_conn.commit() 
 
         commu_list = [] 
         cmd = '''
         SELECT initial, content from message
         WHERE ((initial = ? AND terminal = ?) OR (initial = ? AND terminal = ?))
-        AND via = ?
+        AND via = ? AND type = ?
         ORDER BY datetime ASC 
         '''
         
-        cursor.execute(cmd,(userid,"DIY2","DIY2",userid,"activate")) 
+        cursor.execute(cmd,(userid,"Crazy Dave","Crazy Dave",userid,"activate","chatfrom")) 
         rows = cursor.fetchall() # 获取过往的所有聊天记录
         for row in rows :
             commu_list.append(row[1])
@@ -1912,10 +1964,11 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
         INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
         VALUES(?,?,?,?,?,?,?)
         '''
-        cursor.execute(cmd,("DIY2","activate",userid,res,ct2,"activate","AIchat")) # 插入别人说的话
+        cursor.execute(cmd,(userid,"activate","Crazy Dave",res,ct2,"activate","chatto"))
+        cursor.execute(cmd,(userid,"activate","Crazy Dave",res,ct2,"activate","chatfrom"))
         db_conn.commit() 
-        send_msg(sock,"A02+SUCCESS")
-        send_msg(sock,"You have send a message to DIY2-AI!")
+        # send_msg(sock,"A02+SUCCESS")
+        # send_msg(sock,"You have send a message to DIY2-AI!")
 
     
 
@@ -2131,27 +2184,27 @@ def updatedetector(cursor,sock,userid):
     friend_group_dict = getalllist_(cursor,sock,userid) 
     print(friend_group_dict)
     update_list1 = []
-    friend_list = friend_group_dict["friends"]
+    friend_list = friend_group_dict["friends"] + ["Customized GPT","Little OP","Crazy Dave"] 
     group_list = friend_group_dict["groups"]
     for item in friend_list:
         cmd = '''
         SELECT initial, via, terminal, content, datetime FROM message
         WHERE
-        (via = ?
-        AND type = ?
+        (
+        type = ?
         AND unreadflag = ?
         AND initial = ?
         AND terminal = ?)
         OR
-        (via = ?
-        AND type = ?
+        
+        (type = ?
         AND unreadflag = ?
         AND initial = ?
         AND terminal = ?
         )
         ORDER BY datetime ASC
         '''
-        cursor.execute(cmd,("none","chatto","activate",item,userid,"none","chatfrom","activate",userid,item))
+        cursor.execute(cmd,("chatto","activate",item,userid,"chatfrom","activate",userid,item))
         rows = cursor.fetchall()
         l1 = len(rows)
         cmd = '''
@@ -2163,7 +2216,7 @@ def updatedetector(cursor,sock,userid):
         AND status = ?)
         OR
         (
-            initial = ?
+        initial = ?
         AND via = ?
         AND terminal = ?
         AND status = ?
