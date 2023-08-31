@@ -157,7 +157,7 @@ class Ui_MainWindow(object):
         self.widget_2 = QtWidgets.QWidget(self.contactFriendPage)
         self.widget_2.setObjectName("widget_2")
         self.createGroupBtn = QtWidgets.QPushButton(self.widget_2)
-        self.createGroupBtn.setGeometry(QtCore.QRect(20, 400, 216, 32))
+        self.createGroupBtn.setGeometry(QtCore.QRect(20, 374, 216, 32))
         self.createGroupBtn.setObjectName("createGroupBtn")
         self.contactsList = QtWidgets.QTreeWidget(self.widget_2)
         self.contactsList.setGeometry(QtCore.QRect(0, 0, 256, 435))
@@ -207,7 +207,7 @@ class Ui_MainWindow(object):
         self.manageGroupMemberBtn.setGeometry(QtCore.QRect(70, 250, 400, 32))
         self.manageGroupMemberBtn.setObjectName("manageGroupMemberBtn")
         self.quitGroupBtn = QtWidgets.QPushButton(self.showContactPage)
-        self.quitGroupBtn.setGeometry(QtCore.QRect(510, 500, 97, 32))
+        self.quitGroupBtn.setGeometry(QtCore.QRect(510, 483, 97, 32))
         self.quitGroupBtn.setObjectName("quitGroupBtn")
         self.inviteGroupMemberBtn = QtWidgets.QPushButton(self.showContactPage)
         self.inviteGroupMemberBtn.setGeometry(QtCore.QRect(480, 250, 97, 32))
@@ -318,7 +318,7 @@ class Ui_MainWindow(object):
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
         self.contactListStack.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
