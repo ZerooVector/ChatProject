@@ -1005,8 +1005,8 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # 设置chatMsgBrowser为气泡聊天界面显示
         self.setChatMsgBrowser()
         # GPT人物设置界面的配置
-        print(self.characterSettingPage)
         self.characterSettingPage.hide()
+        self.confirmCharacterBtn.clicked.connect(self.setCharacter)
         # 草函数 使得列表转向搜索or添加
         self.addAccountBtn.clicked.connect(self.contactListStackSwitch)
         # 槽函数 返回搜索结果
@@ -1466,6 +1466,14 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             pass
         print("FInish upload")
         STOP_UPDATE = False
+
+
+    # 设置人设
+    def setCharacter(self):
+        # 可能用的参数 self.userInfo["userNameInfo"]
+        msg = self.characterSettingEdit.text()
+        # 可以沿用发送消息
+
 
     # 点击按钮后发送消息
     def chatSend(self):
