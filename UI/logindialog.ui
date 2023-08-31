@@ -2,22 +2,31 @@
 <ui version="4.0">
  <class>LoginDialog</class>
  <widget class="QDialog" name="LoginDialog">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>651</width>
-    <height>309</height>
+    <height>651</height>
    </rect>
+  </property>
+  <property name="acceptDrops">
+   <bool>false</bool>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
+  <property name="accessibleDescription">
+   <string/>
+  </property>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>70</x>
-     <y>100</y>
+     <x>60</x>
+     <y>290</y>
      <width>81</width>
      <height>24</height>
     </rect>
@@ -35,8 +44,8 @@
   <widget class="QLineEdit" name="pwdLineEdit">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>150</y>
+     <x>170</x>
+     <y>420</y>
      <width>321</width>
      <height>32</height>
     </rect>
@@ -54,8 +63,8 @@
   <widget class="QPushButton" name="exitBtn">
    <property name="geometry">
     <rect>
-     <x>460</x>
-     <y>210</y>
+     <x>450</x>
+     <y>530</y>
      <width>97</width>
      <height>32</height>
     </rect>
@@ -67,8 +76,8 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>70</x>
-     <y>150</y>
+     <x>60</x>
+     <y>420</y>
      <width>72</width>
      <height>24</height>
     </rect>
@@ -86,8 +95,8 @@
   <widget class="QPushButton" name="loginBtn">
    <property name="geometry">
     <rect>
-     <x>100</x>
-     <y>210</y>
+     <x>80</x>
+     <y>530</y>
      <width>97</width>
      <height>32</height>
     </rect>
@@ -95,12 +104,15 @@
    <property name="text">
     <string>Login</string>
    </property>
+   <property name="autoDefault">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QLineEdit" name="usrLineEdit">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>100</y>
+     <x>170</x>
+     <y>290</y>
      <width>321</width>
      <height>32</height>
     </rect>
@@ -112,8 +124,8 @@
   <widget class="QPushButton" name="registerBtn">
    <property name="geometry">
     <rect>
-     <x>280</x>
-     <y>210</y>
+     <x>260</x>
+     <y>530</y>
      <width>91</width>
      <height>31</height>
     </rect>
@@ -122,24 +134,36 @@
     <string>Register</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="faceBtn">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>510</x>
+     <y>420</y>
+     <width>89</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>人脸</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>100</x>
+     <y>100</y>
+     <width>441</width>
+     <height>101</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TITLE</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>exitBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>LoginDialog</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>318</x>
-     <y>385</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>366</x>
-     <y>238</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
