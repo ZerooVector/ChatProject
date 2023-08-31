@@ -15,6 +15,11 @@ from UI.register_ui import Ui_Register
 from UI.information_ui import Ui_Information
 from UI.Voicecall_ui import Ui_Voicecall
 
+import sounddevice as sd
+import soundfile as sf
+import numpy as np 
+import speech_recognition as sr
+import cv2 
 
 ###########################
 import socket
@@ -23,12 +28,22 @@ import threading  # 导入线程模块
 import os 
 import ast 
 # pause_event = threading.Event()
-FILE_PATH = "/home/syh/MyProjects/chatsavefile/"
-AVATAR_PATH = "/home/syh/MyProjects/avatarsave/"
+FILE_PATH = "E:/2023-2024 # 1(now)/finaltest/filesave/"
+AVATAR_PATH = "E:/2023-2024 # 1(now)/finaltest/avatarsave/"
 client_sock = ""
 STOP_UPDATE  = False
 AVATAR_DICT = {}
-
+IP_DICT = {}
+RECORDING = False 
+stream = None 
+audio_data = None
+RECORDING2 = False 
+stream2 = None 
+audio_data2 = None 
+FACE_UPLOAD_FLAG = 0
+dataset_path = './face_dataset' 
+testset_path = './test'
+import shutil
 
 ############ tool functions ############## 
 def send_msg(sock, msg):
@@ -93,6 +108,8 @@ def recv_file(sock):
     except Exception as e:
         print(f"Error while receiving data: {e}")
         return None
+    
+ 
     
 #################### Secondary functions ###############
 
@@ -163,6 +180,200 @@ def ClientDownloadAvatar(client_sock,data,avatarname):
             # print("recieving...")
     print("Finish recieve file!")
 
+def voice2wordchat():
+    # target = msg[4:]
+    global RECORDING, STOP_UPDATE, stream ,audio_data
+    if RECORDING == False :
+        STOP_UPDATE = True #
+        RECORDING = True  
+        sample_rate = 44100
+        # is_recording = False
+        audio_data = []
+        def callback(indata, frames, time, status):
+            # nonlocal audio_data
+            audio_data.append(indata.copy())
+        stream = sd.InputStream(callback=callback, channels=1, samplerate=sample_rate)
+        stream.start()
+        RECORDING = True 
+        print("Recording Start!")
+        return 
+
+    if RECORDING == True:
+        print("Recording Stop!")
+        RECORDING = False 
+        stream.stop()
+        stream.close()
+        file_name = 'voice2word.wav'
+        audio_data = [data.flatten() for data in audio_data]
+        audio_data = np.concatenate(audio_data)
+        sf.write(file_name, audio_data, 44100)
+        STOP_UPDATE = False 
+        return
+    
+def voicechat():
+    global RECORDING2, STOP_UPDATE, stream2 ,audio_data2
+    if RECORDING2 == False :
+        STOP_UPDATE = True 
+        RECORDING2 = True 
+        audio_data2 = []
+        def callback(indata, frames, time, status):
+        # nonlocal audio_data
+            audio_data2.append(indata.copy())
+        stream2 = sd.InputStream(callback=callback, channels=1, samplerate=44100)
+        stream2.start()
+        RECORDING2 = True 
+        print("Start Recording")
+        return 
+    else :
+        print("Stop Recording !")
+        RECORDING2 = False 
+        stream2.stop()
+        stream2.close()
+        file_name = 'voicechat.wav'
+        audio_data2 = [data.flatten() for data in audio_data2]
+        audio_data2 = np.concatenate(audio_data2)
+        sf.write(file_name, audio_data2, 44100)
+
+
+def CatchUsbVideo(window_name, camera_idx,dataset_path):
+    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt2.xml')
+    cap = cv2.VideoCapture(camera_idx)
+    while cap.isOpened():
+        # 截取保存这一帧
+        for i in range(50):
+        # 持续读取新帧
+            ret,frame = cap.read()
+        # 显示新帧 
+        cv2.imshow(window_name, frame)
+        cv2.waitKey(5)
+        if (i+1)%5 == 0:
+            img_name = "test_{}.jpg".format(int((i-4)/5))
+            cv2.imwrite(os.path.join(dataset_path, img_name), frame)
+        break
+    
+def getAllPath(dirpath, *suffix): # tool function 
+    PathArray = []
+    for r, ds, fs in os.walk(dirpath):
+        for fn in fs:
+            if os.path.splitext(fn)[1] in suffix:
+                fname = os.path.join(r, fn)
+                PathArray.append(fname)
+    return PathArray
+
+def readPicSaveFace(sourcePath, targetPath,  *suffix):
+    try:
+        ImagePaths = getAllPath(sourcePath, *suffix)
+
+        # 对list中图片逐一进行检查,找出其中的人脸然后写到目标文件夹下
+        count = 1
+        # haarcascade_frontalface_alt2.xml为库训练好的分类器文件，下载opencv，安装目录中可找到
+        path = "haarcascade_frontalface_alt2.xml" # 级联分类器的地址，换成自己的
+        face_cascade = cv2.CascadeClassifier(path)
+        for imagePath in ImagePaths:
+            # 读灰度图，减少计算
+            filename = os.path.split(imagePath)[1]
+            img = cv2.imread(imagePath, cv2.IMREAD_GRAYSCALE)
+            if type(img) != str:
+                faces = face_cascade.detectMultiScale(img)
+                # (x, y)代表人脸区域左上角坐标；
+                # w代表人脸区域的宽度(width)；
+                # h代表人脸区域的高度(height)。
+                for (x, y, w, h) in faces:
+
+                     # 设置人脸宽度大于128像素，去除较小的人脸
+                     if w >= 128 and h >= 128:
+                        # 扩大图片，可根据坐标调整
+                        X = int(x)
+                        Y = int(y)
+                        W = min(int((x + w)), img.shape[1])
+                        H = min(int((y + h)), img.shape[0])
+                        f = cv2.resize(img[Y:H, X:W], (W - X, H - Y))
+                        f = cv2.resize(f, (200, 200))
+                        cv2.imwrite(targetPath + os.sep + filename, f)
+                        count += 1
+
+    except IOError:
+        print("Error")
+
+    #当try块没有出现异常的时候执行
+    else:
+        print('Find ' + str(count - 1) + ' faces to Destination ' + targetPath)
+        
+def empty_folder(folder_path):  # tool function
+    shutil.rmtree(folder_path)
+    # 重新创建空文件夹
+    os.makedirs(folder_path)
+    
+def clientsendface(client_sock,address):
+    if not os.path.exists(address):
+        print(f"File {address} does not exist!")  # client checks the file is or not exist 
+        return
+
+    with open(address,"rb") as file :
+    
+        file_chunk = file.read(4096*2)
+        while file_chunk:
+            send_file(client_sock,file_chunk)
+            file_chunk = file.read(4096*2)
+
+def clientuploadface(sock,data):
+    global FACE_UPLOAD_FLAG
+    if not os.path.exists(dataset_path):
+        os.mkdir(dataset_path)
+    camera = cv2.VideoCapture(0,cv2.CAP_DSHOW,dataset_path)
+    ret, frame = camera.read()
+    CatchUsbVideo("camera", 0)
+    # 5秒后关闭窗口   
+    camera.release()
+    cv2.destroyAllWindows() 
+    sourcePath = './face_dataset'
+    targetPath = './face_dataset_gray'
+    readPicSaveFace(sourcePath, targetPath, '.jpg', '.JPG', 'png', 'PNG')
+    global FACE_UPLOAD_FLAG
+    FACE_UPLOAD_FLAG = 0
+    send_msg(sock,data)
+    all_facefile_list = os.listdir(targetPath)
+    for item in all_facefile_list:
+        while FACE_UPLOAD_FLAG == 1:
+            pass # 直到标记消失，则上传另一张图
+        if FACE_UPLOAD_FLAG == 0:
+            FACE_UPLOAD_FLAG = 1
+            clientsendface(sock,targetPath + str(item))
+        response = recv_msg(sock)
+        if response == "T10+SUCCESS":
+            FACE_UPLOAD_FLAG = 0 
+    empty_folder("face_dataset")
+    empty_folder("face_dataset_gray")
+    
+def clientcheckface(sock,data):
+    global FACE_UPLOAD_FLAG 
+    if not os.path.exists(testset_path):
+        os.mkdir(testset_path)
+    camera = cv2.VideoCapture(0,cv2.CAP_DSHOW,testset_path)
+    ret, frame = camera.read()
+
+    # 展示摄像头画面  
+    CatchUsbVideo("camera", 0)
+    # 2秒后关闭窗口   
+    camera.release()
+    cv2.destroyAllWindows() 
+    sourcePath = './test'# 原始测试数据文件地址，换成自己的
+    targetPath = './test_gray'# 处理后的测试图片的文件存储地址
+    readPicSaveFace(sourcePath, targetPath, '.jpg', '.JPG', 'png', 'PNG')
+    all_facefile_list = os.listdir(targetPath)
+    for item in all_facefile_list:
+        while FACE_UPLOAD_FLAG == 1:
+            pass # 直到标记消失，则上传另一张图
+        if FACE_UPLOAD_FLAG == 0:
+            FACE_UPLOAD_FLAG = 1
+            clientsendface(sock,targetPath + str(item))
+        response = recv_msg(sock)
+        if response == "T10+SUCCESS":
+            FACE_UPLOAD_FLAG = 0 
+    empty_folder("test")
+    empty_folder("test_gray")
+    
+
 ##########################################################
 # 添加好友界面的Item填充
 class customAddContactItem(QTreeWidgetItem):
@@ -172,6 +383,7 @@ class customAddContactItem(QTreeWidgetItem):
         super().__init__()
 
         self.widget = QWidget()
+        self.name = name 
 
         # 设置图像label
         self.avatorLabel = QLabel()
@@ -202,6 +414,8 @@ class customAddContactItem(QTreeWidgetItem):
         parent_item = self.parent()
         tree_widget = self.treeWidget()
         index = -1
+        self.nameLabel.text()
+        
         for i in range(tree_widget.topLevelItemCount()):
             if parent_item == tree_widget.topLevelItem(i):
                 index = i
@@ -211,7 +425,16 @@ class customAddContactItem(QTreeWidgetItem):
             self.isGroup = True
         
 
-        print(self.isGroupGroup == True)
+        # print(self.isGroupGroup == True)
+        if self.isGroup == False :
+            str_msg = "F01+" + self.name 
+            send_msg(client_sock,str_msg)
+        else :
+            str_msg = "G04+" + self.name 
+            send_msg(client_sock,str_msg)
+
+
+
 
         pass
 
@@ -312,6 +535,8 @@ class customContactItem(QTreeWidgetItem):
 
     def inviteFriend(self):
         # self.name self.inviteGroupName 可用
+        str_msg = "G24+" + self.inviteGroupName + "||-||" + self.name 
+        send_msg(client_sock,str_msg)
         pass
 
 
@@ -366,11 +591,14 @@ class customGroupMemberItem(QWidget):
     def addManager(self):
         # 添加
         if self.addManagerBtn.text() == "addManager":
+            str_msg = "G22+" + self.groupName + "||-||" + self.name 
+            send_msg(client_sock,str_msg)
             pass
         
         # 删除
         else:
-
+            str_msg = "G23+" + self.groupName + "||-||" + self.name 
+            send_msg(client_sock,str_msg)
             
             pass
         # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
@@ -380,7 +608,8 @@ class customGroupMemberItem(QWidget):
     # 写删除群成员的逻辑
     def removeMember(self):
         # self.name 成员名字 self.groupName群名字
-
+        str_msg = "G08+" + self.groupName + "||-||" + self.name 
+        send_msg(client_sock,str_msg)
         # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
         global UPDATEGROUP
         UPDATEGROUP = True
@@ -491,6 +720,8 @@ class customGroupValidationItem(QListWidgetItem):
 
     # 拒绝加入
     def rejectJoin(self):
+        str_msg = "G06+"+  self.groupName + "||-||" + self.name + "||-||" +"N"
+        send_msg(client_sock,str_msg)
         # self.name self.groupName 可用
         # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
         global UPDATEGROUP
@@ -498,6 +729,8 @@ class customGroupValidationItem(QListWidgetItem):
         pass
 
     def allowJoin(self):
+        str_msg = "G06+"+  self.groupName + "||-||" + self.name + "||-||" +"Y"
+        send_msg(client_sock,str_msg)
         # self.name self.groupName 可用
         # 如果成功了 将UPDATEGROUP全局变量设置为TRUE
         global UPDATEGROUP
@@ -696,6 +929,16 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         global UPDATEGROUP
 
+        send_msg(client_sock,"F03+")
+        response = recv_msg(client_sock)
+        response = ast.literal_eval(response)
+        print(response)
+        friend_list = []
+        for item in response:
+            friend_list.append(response[0][0])
+        if len(friend_list) > 0:
+            self.contactFriendList_2.addItems(friend_list)
+        
         # 设置标题
         self.setWindowTitle("BlazIngChaT")
         # 好友列表的设置
@@ -742,11 +985,12 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.acceptBtn.clicked.connect(self.accept_friend_request)
         self.rejectBtn.clicked.connect(self.reject_friend_request)
         # 槽函数 进入语音聊天
-        self.VoiceCallBtn.clicked.connect(self.intoVoicecall)
+        # self.VoiceCallBtn.clicked.connect(self.intoVoicecall)
         # 槽函数 语音转文字
-        # self.TransformBtn.clicked.connect(self.transform)
+        self.TransformBtn.clicked.connect(self.transform)
         # 槽函数 发送语音
-        # self.sendVoiceBtn.clicked.connect(self.sendvoice)
+        self.sendVoiceBtn.clicked.connect(self.sendvoice)
+        self.tabWidget.currentChanged['int'].connect(self.tabfun)
         #---
 
 
@@ -771,7 +1015,23 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # self.loadContactList()
         self.loadContactsList()
         self.showMsgPage.hide()
-    
+    def tabfun(self):
+        global STOP_UPDATE
+        STOP_UPDATE = True 
+        self.contactFriendList_2.clear()
+        send_msg(client_sock,"F03+")
+        response = recv_msg(client_sock)
+        response = ast.literal_eval(response)
+        print(response)
+        friend_list = []
+        for item in response:
+            friend_list.append(item[0])
+        if len(friend_list) > 0:
+            # print(friend_list)
+            self.contactFriendList_2.addItems(friend_list)
+        STOP_UPDATE = False
+        # self.contactFriendList_2.addItems(friend_list)
+        
     def informationClicked(self):
         self.information = Information()
         self.information.show()
@@ -842,28 +1102,29 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
     # 显示群成员界面
     def loadGroupMember(self ):
+        global STOP_UPDATE
+        STOP_UPDATE = True 
         # 在此处获服务器信息 希望得到的信息类似如下 并且无脑设了整个类上的全局变量
-        boss = "123"
-        managers = ["123", "A"]
-        member1 = {
-            "name" : "123", 
-            "img" : "pic.jpg", 
-            "isManager": True,
-            "isBoss": True
-        }
-        member2 = {
-            "name" : "A", 
-            "img" : "pic.jpg", 
-            "isManager": True,
-            "isBoss": False
-        }
-        member3 = {
-            "name" : "B", 
-            "img" : "pic.jpg", 
-            "isManager": False,
-            "isBoss": False
-        }
-        members = [member1, member2, member3]
+        groupName = self.showContactPage.title()
+        send_msg(client_sock,"G20+"+groupName)
+        response = ast.literal_eval(recv_msg(client_sock))
+        bosses = [] 
+        managers = [] 
+        for item in response:
+            if item["isBoss"] == True :
+                bosses.append(item["name"])
+            if item["isManager"] == True :
+                managers.append(item["name"])
+            item["img"] = AVATAR_DICT[item["name"]]
+        STOP_UPDATE = False 
+            
+        boss = bosses[0] 
+        members = response 
+        print("---------------------GROUP---------------------")
+        print(boss)
+        print(managers)
+
+        # members = [member1, member2, member3]
         self.members = members
         self.managers = managers
         self.boss = boss
@@ -907,6 +1168,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         friendFather = self.contactsList.topLevelItem(0)
         for i in range(friendFather.childCount()):
             item =  friendFather.child(i)
+            item.inviteGroupName = self.showContactPage.title()
             if self.inviteFriendOn == False: 
                 item.inviteGourpName = self.showContactPage.title()
                 if item.name in member_names:
@@ -920,21 +1182,19 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
     # 载入群聊的验证消息
     def  loadGroupValidation(self):
+        global STOP_UPDATE
+        STOP_UPDATE  = True 
         self.groupValidationPage.clear()
         # 期望在此处获得信息如下
-        validation1 = {
-            "name":  "A",
-            "dateTime" : datetime(2000,1,1,1,1,1),
-            "isSolved":True,
-            "isAccepted": False
-        }
-        validation2 = {
-            "name":  "Bqweqweqweqweqweqweqwe",
-            "dateTime" : datetime(2000,1,1,1,1,1),
-            "isSolved":False,
-            "isAccepted": None
-        }
-        validations = [validation1, validation2]
+        groupName = self.showContactPage.title()
+        str_msg = "G21+" + groupName 
+        send_msg(client_sock,str_msg)
+        response = ast.literal_eval(recv_msg(client_sock))
+        for item in response:
+            item["dateTime"] = datetime.strptime(item["dateTime"], '%Y-%m-%d %H:%M:%S.%f')
+        validations = response
+        STOP_UPDATE = False 
+        # validations = [validation1, validation2]
 
         self.groupName = self.showContactPage.title()
         size = len(validations)
@@ -947,11 +1207,14 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     # 发送退群消息给服务器
     def quitGroup(self):
         self.groupName = self.showContactPage.title()
+        str_msg = "G41+" + self.groupName 
+        send_msg(client_sock,str_msg)
         pass
     
     def createGroup(self):
         print("clicked")
         dialog = createGroupDialog()
+        
         dialog.show()
         dialog.exec_()
 
@@ -964,7 +1227,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     # 在新界面清除Browser的内容    
     def chatMsgBrowserClear(self):
         container_layout = self.chatMsgBrowser.widget().layout()
-        while container_layout.count() > 1:
+        while container_layout.count() > 0:
             # 有趣的是,给一个widget设置他的layout后再添加子类wigdet，layout在其中添加的是layoutItem而非wigdet
             # 这导致多重连环继承
             widget = container_layout.takeAt(0).widget()
@@ -980,12 +1243,12 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         send_msg(client_sock,"U00+")
         user_response = ast.literal_eval(recv_msg(client_sock))
 
-        msg_str = "U01+"
+        msg_str = "U99+"
         send_msg(client_sock,msg_str)
         response = ast.literal_eval(recv_msg(client_sock))
         print(response)
         friends = response["friends"]
-        friends.append(user_response[0][0])
+        # friends.append(user_response[0][0])
         groups = response["groups"]
         send_msg(client_sock,"T21+")
         response = ast.literal_eval(recv_msg(client_sock))
@@ -1159,21 +1422,36 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     def searchAccount(self):
         if self.contactListStack_showPageAdd == True:
             #该if语句下做添加好友返回搜索结果的界面
+            STOP_UPDATE = True
             friendFather = self.addContactList.topLevelItem(0)
             groupFather = self.addContactList.topLevelItem(1)
             friendFather.setExpanded(True)
             groupFather.setExpanded(True)
             # 先晴空
+            str_msg  = "F00+" + self.contactSearchEdit.text() 
+            send_msg(client_sock,str_msg)
+            respond = recv_msg(client_sock)
+            print(respond)
+            respond = ast.literal_eval(respond)
+            ans_searchFriend = []
+            for item in respond["friends"]:
+                ans_searchFriend.append((item,AVATAR_DICT[item]))
+            
+            ans_searchGroup = [] 
+            for item in respond["groups"]:
+                ans_searchGroup.append((item,AVATAR_DICT[item]))
+            STOP_UPDATE = False 
+
             for i in range(friendFather.childCount()):
                 friendFather.takeChild(i)
             for i in range(groupFather.childCount()):
                 groupFather.takeChild(i)
             #这两个列表应该是服务器返回的
-            ans_searchFriend = [('A', './pic.jpg'), ('Anne', './pic.jpg')]
-            ans_searchGroup = [('A', './pic.jpg'), ('Anne', "./pic.jpg")]
+            # ans_searchFriend = [('A', './pic.jpg'), ('Anne', './pic.jpg')]
+            # ans_searchGroup = [('A', './pic.jpg'), ('Anne', "./pic.jpg")]
 
             for i in range(len(ans_searchFriend)):
-                item = customAddContactItem(name=ans_searchFriend[i][0], img=ans_searchGroup[i][1])
+                item = customAddContactItem(name=ans_searchFriend[i][0], img=ans_searchFriend[i][1])
                 friendFather.addChild(item)
                 self.addContactList.setItemWidget(item, 0, item.widget) 
             for i in range(len(ans_searchGroup)):
@@ -1427,6 +1705,11 @@ class mainWindow(QMainWindow, Ui_MainWindow):
 
         item = QTreeWidgetItem()
 
+    # send_msg(client_sock,"F03+")
+    # response = recv_msg(client_sock)
+    # responce = ast.literal_eval(response)
+    # if len(response) > 0:
+    #     self.contactFriendList_2.addItems(response)
 
     # 接受好友请求
     def accept_friend_request(self):
@@ -1435,6 +1718,9 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             friend_request = selected_item.text()
             # 从列表框和列表中移除好友申请
             self.contactFriendList_2.takeItem(self.contactFriendList_2.row(selected_item))
+            str_msg = "F05+" + friend_request + "||-||" + "Y"
+            send_msg(client_sock,str_msg)
+            
             # self.friend_requests.remove(friend_request)
             # TODO: 执行同意操作的逻辑
     #拒拒绝好友请求
@@ -1444,6 +1730,9 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             friend_request = selected_item.text()
             # 从列表框和列表中移除好友申请
             self.contactFriendList_2.takeItem(self.contactFriendList_2.row(selected_item))
+            
+            str_msg = "F05+" + friend_request + "||-||" + "N"
+            send_msg(client_sock,str_msg)
             # self.friend_requests.remove(friend_request)
             # TODO: 执行拒绝操作的逻辑
     # 打开语音通话
@@ -1454,26 +1743,47 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.call.show()
         self.call.exec_()
     #语音转文字
-    def transform(self): 
-        pass
-        # 语音转文字
-        # if start_end :
-            # 开始录音
-            # start_end = False
-        # else :
-            # 结束录音
-            # start_end = True
-            # str = "转换后的文字" # TODO str 为转换后结果
-            # self.chatMsgEdit.setText(str)
+    def transform(self):
+        print("button pressed")
+        global RECORDING 
+        if RECORDING == False :
+            voice2wordchat() 
+        else :
+            voice2wordchat()
+            recognizer = sr.Recognizer()
+            file_path = "voice2word.wav"  # 音频文件路径
+            with sr.AudioFile(file_path) as source:
+                audio = recognizer.record(source)  # 从音频文件中读取音频数据
+                try:
+                    text = recognizer.recognize_google(audio,language='zh-CN')  # 将语言设置为中文
+                    print("Text from audio: {}".format(text))
+                except sr.UnknownValueError:
+                    print("Unable to recognize speech")
+                    text = ""
+                except sr.RequestError as e:
+                    print("Error: {}".format(e))
+                    text = ""
 
-    # def sendvoice(self): # 发送语音
-        # if start_end :
-            # 开始录音
-            # start_end = False
-        # else :
-            # 结束录音
-            # start_end = True
-            # 发送语音   # TODO 发送语音
+            self.chatMsgEdit.setText(text)
+
+    def sendvoice(self): # 发送语音
+        print("Button Pressed")
+        if RECORDING2 == False :
+            voicechat()
+        else :
+            voicechat()
+            global STOP_UPDATE
+            STOP_UPDATE = True
+            items = self.chatMsgList.selectedItems()
+            item = items[0] 
+            if item.isGroup == True :
+                str_msg = "T04+" + str(item.name) + "||-||" + str("./voicechat.wav") + "||-||" + "groupaudiofile"
+                clientsendfile(client_sock,str_msg)
+            else :
+                str_msg = "T02+" + str(item.name) + "||-||" + str("./voicechat.wav") + "||-||" + "audiofile"
+                clientsendfile(client_sock,str_msg)
+            STOP_UPDATE = False 
+            
 
 
 class Voicecall(QDialog, Ui_Voicecall):
@@ -1496,13 +1806,17 @@ class mainWindowUpdater():
         self.mainwindow = mainwindow
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateMainWindow)
-        self.timer.start(10000)# 5 s
+        self.timer.start(5000)# 5 s
 
     def updateMainWindow(self):
-        
+        global IP_DICT
 
         if STOP_UPDATE == False:
-            print("updateCalled")
+            # print("updateCalled")
+            # send_msg(client_sock,"IPGT")
+            # ip_res = ast.literal_eval(recv_msg(client_sock))
+            # IP_DICT = ip_res
+
             # 在这里写更新的接口，接收服务端的某个信号，说明该用户与某些用户的消息更新了，给定参数names
             if STOP_UPDATE == False:
                 if self.updateChats():
@@ -1686,13 +2000,15 @@ class createGroupDialog(QDialog, Ui_createGroupDialog):
 
     def createGroup(self):
         groupName = self.lineEdit.text()
+        str_msg = "G00+" + groupName + "||-||" + groupName + "||-||" + "[]"
+        send_msg(client_sock,str_msg)
 
 
 
 
 if __name__ == '__main__':
     # global client_sock
-    SERVER_IP = "127.0.0.1" 
+    SERVER_IP = "192.168.43.4" 
     SERVER_PORT = 12345
     BUFFER_SIZE = 1024
 

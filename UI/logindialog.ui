@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>651</width>
-    <height>368</height>
+    <height>309</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,8 +16,8 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>180</y>
+     <x>70</x>
+     <y>100</y>
      <width>81</width>
      <height>24</height>
     </rect>
@@ -35,8 +35,8 @@
   <widget class="QLineEdit" name="pwdLineEdit">
    <property name="geometry">
     <rect>
-     <x>170</x>
-     <y>230</y>
+     <x>180</x>
+     <y>150</y>
      <width>321</width>
      <height>32</height>
     </rect>
@@ -54,8 +54,8 @@
   <widget class="QPushButton" name="exitBtn">
    <property name="geometry">
     <rect>
-     <x>450</x>
-     <y>290</y>
+     <x>460</x>
+     <y>210</y>
      <width>97</width>
      <height>32</height>
     </rect>
@@ -67,8 +67,8 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>230</y>
+     <x>70</x>
+     <y>150</y>
      <width>72</width>
      <height>24</height>
     </rect>
@@ -86,8 +86,8 @@
   <widget class="QPushButton" name="loginBtn">
    <property name="geometry">
     <rect>
-     <x>90</x>
-     <y>290</y>
+     <x>100</x>
+     <y>210</y>
      <width>97</width>
      <height>32</height>
     </rect>
@@ -99,8 +99,8 @@
   <widget class="QLineEdit" name="usrLineEdit">
    <property name="geometry">
     <rect>
-     <x>170</x>
-     <y>180</y>
+     <x>180</x>
+     <y>100</y>
      <width>321</width>
      <height>32</height>
     </rect>
@@ -112,40 +112,14 @@
   <widget class="QPushButton" name="registerBtn">
    <property name="geometry">
     <rect>
-     <x>270</x>
-     <y>290</y>
+     <x>280</x>
+     <y>210</y>
      <width>91</width>
      <height>31</height>
     </rect>
    </property>
    <property name="text">
     <string>Register</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="faceBtn">
-   <property name="geometry">
-    <rect>
-     <x>510</x>
-     <y>230</y>
-     <width>89</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>人脸</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>100</x>
-     <y>40</y>
-     <width>441</width>
-     <height>101</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>TITLE</string>
    </property>
   </widget>
  </widget>
