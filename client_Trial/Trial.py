@@ -174,7 +174,10 @@ class customContactItem(QTreeWidgetItem):
 
         # 设置删除按钮
         self.deleteContactBtn = QPushButton()
-        self.deleteContactBtn.setText("Delete")
+        self.deleteContactBtn.setStyleSheet("border: none; \
+                                            background-color: white;\
+                                             background-image: url(/home/jh/code/QtDemo/Project_Github/ChatProject/client_Trial/backgroundImg/deleteContactBtn.png);")
+        # self.deleteContactBtn.setText("Delete")
         # 槽函数，当按钮被点击时删除该项
         self.deleteContactBtn.clicked.connect(self.deleteContact)
         self.deleteContactBtn.hide()

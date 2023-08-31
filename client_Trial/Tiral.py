@@ -830,6 +830,10 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         self.addAccountBtn.setStyleSheet("border: none; \
                                             background-color: white;\
                                              background-image: url(/home/jh/code/QtDemo/Project_Github/ChatProject/client_Trial/backgroundImg/addAccountBtn.png);")
+        # self.searchAccountBtn.setStyleSheet("border: none; \
+        #                                     background-color: white;\
+        #                                      background-image: url(/home/jh/code/QtDemo/Project_Github/ChatProject/client_Trial/backgroundImg/searchAccountBtn.png);")
+        
         self.pushButton.setStyleSheet(button_style)
 
         self.chatMsgList.setStyleSheet(list_widget_style)
