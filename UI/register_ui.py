@@ -36,11 +36,9 @@ class Ui_Register(object):
         self.NicknameLineEdit.setObjectName("NicknameLineEdit")
         self.PasswordLineEdit = QtWidgets.QLineEdit(Register)
         self.PasswordLineEdit.setGeometry(QtCore.QRect(130, 130, 181, 25))
-        self.PasswordLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.PasswordLineEdit.setObjectName("PasswordLineEdit")
         self.ConfirmLineEdit = QtWidgets.QLineEdit(Register)
         self.ConfirmLineEdit.setGeometry(QtCore.QRect(130, 180, 181, 25))
-        self.ConfirmLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.ConfirmLineEdit.setObjectName("ConfirmLineEdit")
 
         self.retranslateUi(Register)
