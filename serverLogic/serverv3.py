@@ -299,20 +299,30 @@ def searchuser(cursor,sock,data):
     search_request = data 
     pattern = "%" + search_request + "%"
     cmd = '''
-    SELECT * 
+    SELECT id 
     FROM user 
-    WHERE nickname LIKE ?
+    WHERE (nickname LIKE ?) OR (id LIKE ?)
     '''
-    cursor.execute(cmd,(pattern,))
+    cursor.execute(cmd,(pattern,pattern,))
     rows = cursor.fetchall() 
-    if len(rows) == 0 :
-        send_msg(sock,"F00+ERROR")
-        send_msg(sock,"Cannot match any user!")
-    else :
-        str_msg = str(rows)
-        send_msg(sock,"F00+SUCCESS")
-        send_msg(sock,str_msg)
-
+    friendlist = []
+    for row in rows :
+        friendlist.append(row[0])
+    cmd = '''
+    SELECT id 
+    FROM usergroup 
+    WHERE (name LIKE ?) OR (id LIKE ?)
+    '''
+    cursor.execute(cmd,(pattern,pattern,))
+    rows = cursor.fetchall() 
+    grouplist = []
+    for row in rows :
+        grouplist.append(row[0])
+    info_dict = {}
+    info_dict["friends"] = friendlist
+    info_dict["groups"] = grouplist
+    send_msg(sock,str(info_dict))
+    
 
 
 def addfriendrequest(cursor,sock,data,userid,db_conn):
@@ -361,7 +371,7 @@ def getpreviousrequest_(cursor,sock,userid):
     current_time = dt.datetime.now()
     current_time = str(current_time)
     cmd = '''
-    SELECT initial,unreadflag FROM message
+    SELECT initial FROM message
     WHERE 
     via = ?
     AND type = ?
@@ -378,10 +388,11 @@ def getpreviousrequest(cursor,sock,userid,):
     rows = getpreviousrequest_(cursor,sock,userid)
     rows = str(rows)
     if len(rows) == 0:
-        send_msg(sock,"F03+ERROR")
-        send_msg(sock,"You have not recieved request!")
+        # send_msg(sock,"F03+ERROR")
+        # send_msg(sock,"You have not recieved request!")
+        return 
     else :
-        send_msg(sock,"F03+SUCCESS")
+        # send_msg(sock,"F03+SUCCESS")
         send_msg(sock,rows)
     
 
@@ -424,8 +435,8 @@ def dealwithrequest(cursor,sock,data,userid,db_conn):
     cursor.execute(cmd,(source,"none",userid,"friendrq","activate"))
     rows = cursor.fetchall() 
     if len(rows) == 0:
-        send_msg(sock,"F05+ERROR")
-        send_msg(sock,"Request Do not exists!")
+        # send_msg(sock,"F05+ERROR")
+        # send_msg(sock,"Request Do not exists!")
         return 
     if reply == "Y" or reply == "y":
         cmd = '''
@@ -448,8 +459,8 @@ def dealwithrequest(cursor,sock,data,userid,db_conn):
         db_conn.commit()
         cursor.execute(cmd,(userid,source))
         db_conn.commit() 
-        send_msg(sock,"F05+SUCCESS")
-        send_msg(sock,"You accept another user's request!")
+        # send_msg(sock,"F05+SUCCESS")
+        # send_msg(sock,"You accept another user's request!")
     else :
         cmd = '''
         UPDATE message 
@@ -462,8 +473,8 @@ def dealwithrequest(cursor,sock,data,userid,db_conn):
         '''
         cursor.execute(cmd,("refuse",source,"none",userid,"friendrq","activate"))
         db_conn.commit()
-        send_msg(sock,"F05+SUCCESS")
-        send_msg(sock,"You refuse another user's request!")
+        # send_msg(sock,"F05+SUCCESS")
+        # send_msg(sock,"You refuse another user's request!")
     
 
 
@@ -505,8 +516,9 @@ def creategroup(cursor,sock,data,userid,db_conn): # G00;test;[A00,A01]
     cursor.execute(cmd,(input_id,))
     rows = cursor.fetchall() 
     if len(rows) > 0:
-        send_msg(sock,"G00+ERROR")
-        send_msg(sock,"Duplicate Group id!")
+        print("Create Group Error")
+        # send_msg(sock,"G00+ERROR")
+        # send_msg(sock,"Duplicate Group id!")
     else :
         friend = getfriendslist_(cursor,sock,userid)
         friend.append(userid)
@@ -534,8 +546,8 @@ def creategroup(cursor,sock,data,userid,db_conn): # G00;test;[A00,A01]
             cursor.execute(cmd,(input_id,userid))
             db_conn.commit()
 
-            send_msg(sock,"G00+SUCCESS")
-            send_msg(sock,"Successfully Create a Group!")
+            # send_msg(sock,"G00+SUCCESS")
+            # send_msg(sock,"Successfully Create a Group!")
 
 def askgroup_(cursor,sock,userid):
     cmd = '''
@@ -910,13 +922,14 @@ def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
     cursor.execute(cmd,(user,group,userid,"grouprq","activate",))
     rows = cursor.fetchall() 
     if len(rows) == 0:
-        send_msg(sock,"G06+ERROR")
-        send_msg(sock,"Cannot find this request!")
+        # send_msg(sock,"G06+ERROR")
+        # send_msg(sock,"Cannot find this request!")
         return 
     manager = getgroupmanager_(cursor,sock,group)
     if userid not in manager:
-        send_msg(sock,"G06+ERROR")
-        send_msg(sock,"You are not the manager of the group!")
+        return 
+        # send_msg(sock,"G06+ERROR")
+        # send_msg(sock,"You are not the manager of the group!")
     if respose =="Y" or respose == "y":
         cmd = '''
         UPDATE message 
@@ -926,7 +939,7 @@ def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
         AND type = ?
         AND unreadflag = ?
         '''
-        cursor.execute(cmd,("accept",user,group,"groupeq","activate"))
+        cursor.execute(cmd,("accept",user,group,"grouprq","activate"))
         db_conn.commit() 
         cmd = '''
         INSERT INTO grouprelation(groupid,userid)
@@ -934,8 +947,8 @@ def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
         '''
         cursor.execute(cmd,(group,user))
         db_conn.commit()
-        send_msg(sock,"G06+SUCCESS")
-        send_msg(sock,"You accept a user's request!")
+        # send_msg(sock,"G06+SUCCESS")
+        # send_msg(sock,"You accept a user's request!")
     else :
         cmd = '''
         UPDATE message 
@@ -945,10 +958,10 @@ def dealwithgrouprequest(cursor,sock,userid,data,db_conn):
         AND type = ?
         AND unreadflag = ?
         '''
-        cursor.execute(cmd,("refuse",user,group,"groupeq","activate"))
+        cursor.execute(cmd,("refuse",user,group,"grouprq","activate"))
         db_conn.commit()
-        send_msg(sock,"G06+SUCCESS")
-        send_msg(sock,"You refuse a user's request!") 
+        # send_msg(sock,"G06+SUCCESS")
+        # send_msg(sock,"You refuse a user's request!") 
 
 
 
@@ -963,8 +976,8 @@ def manageradduser(cursor,sock,userid,data,db_conn):
     cursor.execute(cmd,(user,))
     res = cursor.fetchall() 
     if len(res) == 0:
-        send_msg(sock,"G07+ERROR")
-        send_msg(sock,"User Not Exist!")
+        # send_msg(sock,"G07+ERROR")
+        # send_msg(sock,"User Not Exist!")
         return 
     
     cmd = '''
@@ -974,14 +987,14 @@ def manageradduser(cursor,sock,userid,data,db_conn):
     cursor.execute(cmd,(group,))
     res = cursor.fetchall() 
     if len(res) == 0:
-        send_msg(sock,"G07+ERROR")
-        send_msg(sock,"Group Not Exist!")
+        # send_msg(sock,"G07+ERROR")
+        # send_msg(sock,"Group Not Exist!")
         return 
     
     manager = getgroupmanager_(cursor,sock,group)
     if userid not in manager:
-        send_msg(sock,"G07+ERROR")
-        send_msg(sock,"You are not a manager of the group!")
+        # send_msg(sock,"G07+ERROR")
+        # send_msg(sock,"You are not a manager of the group!")
         return 
     cmd = '''
     INSERT INTO grouprelation(groupid,userid)
@@ -1005,20 +1018,20 @@ def managerremoveuser(cursor,sock,userid,data,db_conn):
     cursor.execute(cmd,(group,))
     rows = cursor.fetchall() 
     if len(rows) == 0:
-        send_msg(sock,"G08+ERROR")
-        send_msg(sock,"Group not Exist!")
+        # send_msg(sock,"G08+ERROR")
+        # send_msg(sock,"Group not Exist!")
         return 
     
     mem = getgroupmember_(cursor,sock,group)
     if user not in mem:
-        send_msg(sock,"G08+ERROR")
-        send_msg(sock,"User not in the group!")
+        # send_msg(sock,"G08+ERROR")
+        # send_msg(sock,"User not in the group!")
         return 
     
     manager = getgroupmanager_(cursor,sock,group)
     if userid not in manager:
-        send_msg(sock,"G08+ERROR")
-        send_msg(sock,"You are not a manager of the group!")
+        # send_msg(sock,"G08+ERROR")
+        # send_msg(sock,"You are not a manager of the group!")
         return 
     cmd = '''
     DELETE FROM grouprelation
@@ -1026,8 +1039,8 @@ def managerremoveuser(cursor,sock,userid,data,db_conn):
     '''
     cursor.execute(cmd,(group,user))
     db_conn.commit() 
-    send_msg(sock,"G08+SUCCESS")
-    send_msg(sock,"You removed a user into the group!")
+    # send_msg(sock,"G08+SUCCESS")
+    # send_msg(sock,"You removed a user into the group!")
     
     
 
@@ -1162,7 +1175,9 @@ def serverrecievefile(cursor,sock,userid,data,db_conn):
     savename = str(getfilecount_(cursor)) +"-" + originname 
     savepath = FILE_PATH + savename
     friend = getfriendslist_(cursor,sock,userid)
+    
     if target not in friend:
+        print("Receive Error")
         while True :
             file_chunk = recv_file(sock)  # recieve a chunk
             if not file_chunk:
@@ -1293,17 +1308,29 @@ def checkfacelogin(cursor,sock,data,db_conn):
 
     cmd = '''
     SELECT storagename FROM file 
-    WHERE initial = ?
-    AND via = ?
+    WHERE via = ?
+    AND terminal = ?
+    AND type = ?
+    AND status = ?
+    '''
+    cursor.execute(cmd,("none","none","facefile","pattern"))
+    rows = cursor.fetchall() 
+    pattern_res = []
+    for row in rows:
+        pattern_res.append(row[0])
+
+    cmd = '''
+    SELECT storagename FROM file 
+    WHERE initial = ? AND via = ?
     AND terminal = ?
     AND type = ?
     AND status = ?
     '''
     cursor.execute(cmd,(userid,"none","none","facefile","pattern"))
     rows = cursor.fetchall() 
-    pattern_res = []
+    your_pattern_res = []
     for row in rows:
-        pattern_res.append(row[0])
+        your_pattern_res.append(row[0])
 
 
     cmd = '''
@@ -1325,101 +1352,73 @@ def checkfacelogin(cursor,sock,data,db_conn):
     
 
     print(len(pattern_res))
-    train_encode=[]
+    # train_encode=[]
+    imageMatrix = []
     for item in pattern_res:
         full_path = os.path.join(FACE_PATH,item)
         # print(full_path)
         img = cv2.imread(full_path)
-        face_cascade = cv2.CascadeClassifier('/home/syh/MyProjects/ChatProject/serverLogic/haarcascade_frontalface_default.xml')
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray)
-        if len(faces)==1:
-            (x, y, w, h)  = faces[0]
-            w += int(w*0.1)
-            h += int(h*0.1)
-            face = img[y:y+h, x:x+w]
-            train_encode.append(face)
-        else:
-            continue
+
+
+
+        count += 1
+        # img = cv2.imread(imgpath, cv2.IMREAD_GRAYSCALE)
+        # 灰度图矩阵
+        mats = np.array(img)
+        # 将灰度矩阵转换为向量
+        imageMatrix.append(mats.ravel())
  
-    # 检查每个元素的形状
-    shapes = [item.shape for item in train_encode]
-    # 确保所有元素具有相同的形状
-    if len(set(shapes)) > 1:
-        # 调整元素的形状为相同的形状
-        max_shape = np.max(shapes, axis=0)
-        train_encode = [np.resize(item, max_shape) for item in train_encode]
+    imageMatrix = np.array(imageMatrix)# imageMatrix是图片矩阵；n X 40000 ,n为图片个数
+    from PIL import Image
+    # 矩阵转置后每一列都是一个图像，40000 X n，对行求均值
+    imageMatrix = np.transpose(imageMatrix)
+    imageMatrix = np.mat(imageMatrix)
+    # 原始矩阵的行均值
+    mean_img = np.mean(imageMatrix, axis=1)
+    #得到平均脸
+    mean_img1 = np.reshape(mean_img,(200,200))
+    im = Image.fromarray(np.uint8(mean_img1))
+    # 均值中心化
+    imageMatrix = imageMatrix - mean_img
 
-    # 将图像数据调整为符合模型期望的形状和类型
-    img = np.mean(train_encode, axis=0)
-    img_tensor = torch.from_numpy(img)
-    # 预处理数据
-    img_tensor = img_tensor.float() # 转换为float
-    img_tensor = img_tensor.permute(2, 0, 1) # 调整通道顺序
-    img_tensor = img_tensor.unsqueeze(0) # 增加batch维度
-    # Calculate embedding (unsqueeze to add batch dimension)
-    train_embedding = resnet(img_tensor)
-    train_embedding = train_embedding.detach().numpy()
+    # W是特征向量， V是特征向量组 
+    imag_mat = (imageMatrix.T * imageMatrix) / float(count)
+    W, V = np.linalg.eig(imag_mat)
+    # V_img是协方差矩阵的特征向量组
+    V_img = imageMatrix * V
+    # 降序排序后的索引值
+    axis = W.argsort()[::-1]
+    V_img = V_img[:, axis]
 
+    # 取前15个最大特征值对应的特征向量，组成映射矩阵
+    V_img_finall = V_img[:, :15]
 
-    # for i in range(50):
-    var_encode = []
-    print(len(check_res))
-    for item in check_res:
-        full_path = os.path.join(FACE_PATH,item)
-        img = cv2.imread(full_path)
-        face_cascade = cv2.CascadeClassifier('/home/syh/MyProjects/ChatProject/serverLogic/haarcascade_frontalface_default.xml')
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray)
-        if len(faces)==1:
-            (x, y, w, h)  = faces[0]
-            w += int(w*0.1)
-            h += int(h*0.1)
-            face = img[y:y+h, x:x+w]
-            var_encode.append(face)
-        else:
-                continue
+    sim_list = [] 
+    for i in range(5):
+        full_path = os.path.join(FACE_PATH,your_pattern_res[i])
+        # print(full_path)
+        img1 = cv2.imread(full_path)
+        mats1 = np.array(img1)
+        # 将灰度矩阵转换为向量
+        sample_mats = mats1.ravel()
+        sample =  sample_mats  * V_img_finall
 
-    length = len(var_encode)
-    # print(length)
-    if length<2:
-        send_msg(sock,"Show your full face!")
-        return 
-    # 检查每个元素的形状
-    shapes = [item.shape for item in var_encode]
-    # 确保所有元素具有相同的形状
-    if len(set(shapes)) > 1:
-        # 调整元素的形状为相同的形状
-        max_shape = np.max(shapes, axis=0)
-        var_encode = [np.resize(item, max_shape) for item in var_encode]   
-
-    var_encoding = []
-    for _,img in  enumerate(var_encode):
-        img_tensor = torch.from_numpy(img)
-        # 预处理数据
-        img_tensor = img_tensor.float() # 转换为float
-        img_tensor = img_tensor.permute(2, 0, 1) # 调整通道顺序
-        img_tensor = img_tensor.unsqueeze(0) # 增加batch维度
-        # Calculate embedding (unsqueeze to add batch dimension)
-        var_embedding = resnet(img_tensor)
-        var_embedding = var_embedding.detach().numpy()
-        var_encoding.append(var_embedding)
-        
-    similarity = []
-    all_sim = 0
-    count = 0
-    for i in range(length):
-        sim = np.dot(train_embedding, var_encoding[i].T) / (np.linalg.norm(train_embedding) * np.linalg.norm(var_encoding[i]))
-        similarity.append(sim)
-        all_sim += similarity[-1]
-    
-    if all_sim / length > 0.8:
-        send_msg(sock,"Sim : "+str(all_sim / length) +"Login Success!")
+        full_path = os.path.join(FACE_PATH,check_res[i])
+        # print(full_path)
+        img2 = cv2.imread(full_path)
+        mats2 = np.array(img2)
+    # 将灰度矩阵转换为向量
+        var_mats = mats2.ravel()
+        var =   var_mats  * V_img_finall
+        sim_list.append(np.linalg.norm(sample - var))
+    sim_list = np.array(sim_list)
+    mean_sim = np.mean(sim_list)
+    if mean_sim <  100000000:
+        send_msg("RECOSUCCESS")
         return userid
-    
     else :
-        send_msg(sock,"Sim : "+str(all_sim / length) +"Login Failed!")
-        return 
+        send_msg("RECOFAIL")
+        return None
 
 
 
@@ -2053,7 +2052,12 @@ def servertransferaudio(sock,userid,data):
     send_msg(target_sock,msg1)
 
 
-
+def sendip(sock):
+    ip_dict = {}
+    for item in current_online:
+        ip_dict[item["user_id"]] = item["client_sock"].getpeername()[0] 
+        # print(ip_dict)
+    send_msg(sock,str(ip_dict))
 
 def loaduserinfo(cursor,sock,userid):
     # userid = data 
@@ -2079,7 +2083,7 @@ def getalllist_(cursor,sock,userid):
     groups = askgroup_(cursor,sock,userid)
     res_dict = {"friends":friends,"groups":groups}
     # send_msg(sock,str(res_dict))
-    return res_dict
+    return  res_dict
 
 def friendupdatedetector(cursor,sock,userid,friendcount,groupcount):
     friends = getfriendslist_(cursor,sock,userid)
@@ -2262,12 +2266,14 @@ def leavegroup(cursor,sock,userid,data,db_conn):
     rows = cursor.fetchall() 
     if len(rows) == 0:
         return 
-    cmd == '''
+    cmd = '''
     DELETE FROM grouprelation
     WHERE groupid = ? AND userid = ?
     '''
     cursor.execute(cmd,(target,userid))
+    print(target,userid)
     db_conn.commit() 
+    # print("LEAVED")
 
 
 def serverrecieveAvatar(cursor,sock,userid,data,db_conn):
@@ -2369,7 +2375,130 @@ def modifyinfo(cursor,sock,userid,data,db_conn):
     cursor.execute(cmd,(nickname,password,userid))
     db_conn.commit() 
     send_msg(sock,"U10+SUCCESS")
+
+
+def getformatgroupinfo(cursor,sock,userid,data,db_conn):
+    group = data 
+    cmd = '''
+    SELECT master FROM usergroup 
+    WHERE id = ? 
+    '''
+    cursor.execute(cmd,(group,))
+    master = cursor.fetchall()[0][0] 
+    managers = getgroupmanager_(cursor,sock,group)
+    members = getgroupmember_(cursor,sock,group)
+    info_list = [] 
+    for member in members:
+        info_dict = {}
+        if member == master:
+            info_dict["isBoss"] = True 
+        else :
+            info_dict["isBoss"] = False 
+
+        if member in managers:
+            info_dict["isManager"] = True
+        else :
+            info_dict["isManager"] = False 
+        
+        info_dict["name"] = member 
+        info_list.append(info_dict)
+    # send_msg(sock,master)
+    # time.sleep(0.1)
+    # send_msg(sock,managers)
+    # time.sleep(0.1)
+    send_msg(sock,str(info_list))
+
     
+def getformatgrouprequest(cursor,sock,userid,data,db_conn):
+    group = data 
+    ct = dt.datetime.now()
+    ct = str(ct)
+    cmd = '''
+    SELECT initial,via,unreadflag,datetime FROM message
+    WHERE via = ?
+    AND terminal = ?
+    AND datetime < ?
+    AND type = ?
+    '''
+    cursor.execute(cmd,(group,userid,ct,"grouprq"))
+    rows = cursor.fetchall() 
+    info_list = [] 
+    for row in rows :
+        info_dict = {} 
+        info_dict["name"] = row[0] 
+        info_dict["dateTime"] = row[3]
+        if row[2] == "activate":
+            info_dict["isSolved"] = False 
+        else :
+            info_dict["isSolved"] = True 
+        
+        if row[2] == "accept":
+            info_dict["isAccepted"] =  True
+        else :
+            info_dict["isAccepted"] = False 
+
+        info_list.append(info_dict)
+    send_msg(sock,str(info_list))
+
+
+def addgroupmanager(cursor,sock,data,db_conn):
+    data = data.split("||-||")
+    group = data[0] 
+    user = data[1] 
+    cmd = '''
+    INSERT INTO groupmanager (groupid,userid)
+    VALUES(?,?)
+    '''
+    cursor.execute(cmd,(group,user))
+    db_conn.commit() 
+
+
+def deletegroupmanager(cursor,sock,data,db_conn):
+    data = data.split("||-||")
+    group = data[0] 
+    user = data[1] 
+    cmd = '''
+    DELETE FROM groupmanager 
+    WHERE groupid = ? AND userid = ?  
+    '''
+    cursor.execute(cmd,(group,user))
+    db_conn.commit() 
+
+
+def invitefriendintogroup(cursor,sock,data,db_conn):
+    data = data.split("||-||")
+    group = data[0] 
+    user = data[1] 
+    cmd = '''
+    INSERT INTO grouprelation (groupid,userid)
+    VALUES(?,?)
+    '''
+    cursor.execute(cmd,(group,user,))
+    db_conn.commit() 
+
+
+def get_all(cursor,sock):
+    cmd = '''
+    SELECT id FROM user
+    '''
+    cursor.execute(cmd)
+    rows = cursor.fetchall() 
+    user_list = [] 
+    for row in rows:
+        user_list.append(row[0])
+    cmd = '''
+    SELECT id FROM usergroup
+    '''
+    cursor.execute(cmd)
+    rows = cursor.fetchall() 
+    group_list = [] 
+    for row in rows:
+        group_list.append(row[0])
+        info_dict = {}
+    info_dict["friends"] = user_list
+    info_dict["groups"] = group_list 
+    send_msg(sock,str(info_dict))
+
 
 
 
@@ -2571,7 +2700,7 @@ def handle_client(client_sock): # callback function, all functions of our app sh
             if flag_bits == "F06+":
                 deletefriend(cursor,client_sock,user_id,data,db_conn)
 
-            if flag_bits == "G21+":
+            if flag_bits == "G41+":
                 leavegroup(cursor,client_sock,user_id,data,db_conn)
 
             if flag_bits == "T20+":
@@ -2586,7 +2715,26 @@ def handle_client(client_sock): # callback function, all functions of our app sh
             if flag_bits == "F30+":
                 FriendCount, GroupCount = friendupdatedetector(cursor,client_sock,user_id,FriendCount,GroupCount)
 
+            if flag_bits == "G20+":
+                getformatgroupinfo(cursor,client_sock,user_id,data,db_conn)
             
+            if flag_bits == "G21+":
+                getformatgrouprequest(cursor,client_sock,user_id,data,db_conn)
+
+            if flag_bits == "U99+":
+                get_all(cursor,client_sock)
+
+            if flag_bits == "G22+":
+                addgroupmanager(cursor,client_sock,data,db_conn)
+            
+            if flag_bits == "G23+":
+                deletegroupmanager(cursor,client_sock,data,db_conn)
+
+            if flag_bits == "G24+":
+                invitefriendintogroup(cursor,client_sock,data,db_conn)
+
+            if flag_bits == "IPGT":
+                sendip(client_sock)
 
 
         # if len(data) > 0:
@@ -2657,7 +2805,6 @@ def main():
         
         # Start a new thread to handle this client
         client_thread = threading.Thread(target=handle_client, args=(client_sock,))
-
         client_thread.start()
 
     
