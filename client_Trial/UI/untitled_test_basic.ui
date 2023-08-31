@@ -30,7 +30,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -187,32 +187,6 @@
               <height>319</height>
              </rect>
             </property>
-            <widget class="QWidget" name="characterSettingPage" native="true">
-             <property name="geometry">
-              <rect>
-               <x>300</x>
-               <y>270</y>
-               <width>246</width>
-               <height>50</height>
-              </rect>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
-              <item>
-               <widget class="QLineEdit" name="characterSettingEdit">
-                <property name="placeholderText">
-                 <string>Chatacter Setting</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="confirmCharacterBtn">
-                <property name="text">
-                 <string>Confirm</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
            </widget>
           </widget>
           <widget class="QPushButton" name="pushButton">
@@ -294,6 +268,32 @@
        </layout>
       </widget>
      </widget>
+     <widget class="QWidget" name="characterSettingPage" native="true">
+      <property name="geometry">
+       <rect>
+        <x>477</x>
+        <y>309</y>
+        <width>331</width>
+        <height>50</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QLineEdit" name="characterSettingEdit">
+         <property name="placeholderText">
+          <string>Chatacter Setting</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="confirmCharacterBtn">
+         <property name="text">
+          <string>Confirm</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
     <widget class="QWidget" name="contactTab">
      <attribute name="title">
@@ -322,7 +322,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>search</string>
+       <string/>
       </property>
      </widget>
      <widget class="QStackedWidget" name="contactListStack">
@@ -419,14 +419,14 @@
      <widget class="QPushButton" name="addAccountBtn">
       <property name="geometry">
        <rect>
-        <x>240</x>
+        <x>238</x>
         <y>11</y>
-        <width>21</width>
+        <width>31</width>
         <height>32</height>
        </rect>
       </property>
       <property name="text">
-       <string>PushButton</string>
+       <string/>
       </property>
      </widget>
      <widget class="QGroupBox" name="showContactPage">
@@ -716,7 +716,7 @@
        </rect>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_2">
+     <widget class="QPushButton" name="uploadFaceBtn">
       <property name="geometry">
        <rect>
         <x>155</x>
