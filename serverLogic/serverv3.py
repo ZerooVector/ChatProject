@@ -7,20 +7,20 @@ import time
 import sqlite3
 import datetime as dt 
 import os 
-import openai 
-import torch
-import numpy as np
-from transformers.models.gpt2 import GPT2LMHeadModel
-from transformers import BertTokenizer
-import sys
-# sys.path.append("..")
-from model import GPT2
-import cv2
-# import os
-from PIL import Image
+# import openai 
 # import torch
 # import numpy as np
-from facenet_pytorch import MTCNN, InceptionResnetV1
+# from transformers.models.gpt2 import GPT2LMHeadModel
+# from transformers import BertTokenizer
+import sys
+# sys.path.append("..")
+# from model import GPT2
+# import cv2
+# import os
+# from PIL import Image
+# import torch
+# import numpy as np
+# from facenet_pytorch import MTCNN, InceptionResnetV1
 
 
 DB_PATH = "/home/syh/MyProjects/temp/serverLogic/server.db"
@@ -31,22 +31,22 @@ GPT_PERSONA_PATH = "/home/syh/MyProjects/temp/serverLogic/filefolder/"
 
 os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-openai.api_key = "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" 
+# openai.api_key = "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" 
 
 
-device = torch.device("cpu")
-tokenizer = BertTokenizer.from_pretrained("/home/syh/MyProjects/temp/serverLogic/gpt2-chinese-cluecorpussmall")
+# device = torch.device("cpu")
+# tokenizer = BertTokenizer.from_pretrained("/home/syh/MyProjects/temp/serverLogic/gpt2-chinese-cluecorpussmall")
 
-model1 = GPT2().to(device)
-model1.eval()
-model1.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT2.pt",map_location=torch.device('cpu')),False)
+# model1 = GPT2().to(device)
+# model1.eval()
+# model1.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT2.pt",map_location=torch.device('cpu')),False)
 
-model2 = GPT2().to(device)
-model2.eval()
-model2.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT3.pt",map_location=torch.device('cpu')),False)
+# model2 = GPT2().to(device)
+# model2.eval()
+# model2.load_state_dict(torch.load("/home/syh/MyProjects/temp/serverLogic/model_checkpoints/GPT3.pt",map_location=torch.device('cpu')),False)
 
 
-resnet = InceptionResnetV1(pretrained='vggface2').eval()
+# resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 
 current_online = []
