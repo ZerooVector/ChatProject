@@ -31,7 +31,7 @@ GPT_PERSONA_PATH = "/home/syh/MyProjects/temp/serverLogic/filefolder/"
 
 os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-openai.api_key = "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" 
+openai.api_key = "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" 
 
 
 device = torch.device("cpu")
@@ -542,32 +542,31 @@ def creategroup(cursor,sock,data,userid,db_conn): # G00;test;[A00,A01]
         print("Create Group Error")
         # send_msg(sock,"G00+ERROR")
         # send_msg(sock,"Duplicate Group id!")
+    
+        #     send_msg(sock,"G00+ERROR")
+        #     send_msg(sock,"Some users are not your friend!")
     else :
-        friend = getfriendslist_(cursor,sock,userid)
-        friend.append(userid)
-        if set(members).issubset(set(friend)) == 0 :
-            send_msg(sock,"G00+ERROR")
-            send_msg(sock,"Some users are not your friend!")
-        else :
-            cmd = '''
-            INSERT INTO usergroup(id,name,master)
-            VALUES(?,?,?)
-            '''
-            cursor.execute(cmd,(input_id,input_name,userid,))
+        print("Start add")
+        cmd = '''
+        INSERT INTO usergroup(id,name,master)
+        VALUES(?,?,?)
+        '''
+        cursor.execute(cmd,(input_id,input_name,userid,))
+        db_conn.commit()
+        cmd = '''
+        INSERT INTO grouprelation(groupid,userid)
+        VALUES(?,?)
+        ''' 
+        for item in members:
+            cursor.execute(cmd,(input_id,item,))
             db_conn.commit()
-            cmd = '''
-            INSERT INTO grouprelation(groupid,userid)
-            VALUES(?,?)
-            ''' 
-            for item in members:
-                cursor.execute(cmd,(input_id,item,))
-                db_conn.commit()
-            cmd = '''
-            INSERT INTO groupmanager(groupid,userid)
-            VALUES(?,?)
-            '''
-            cursor.execute(cmd,(input_id,userid))
-            db_conn.commit()
+        cmd = '''
+        INSERT INTO groupmanager(groupid,userid)
+        VALUES(?,?)
+        '''
+        current_time = dt.datetime.now()
+        cursor.execute(cmd,(input_id,userid))
+        db_conn.commit()
         current_time = str(current_time)
         cmd = '''
             INSERT INTO message(initial,via,terminal,type,unreadflag,datetime,content)
@@ -1243,6 +1242,7 @@ def serverrecievefile(cursor,sock,userid,data,db_conn):
     current_time = dt.datetime.now() 
     current_time = str(current_time)
     cursor.execute(cmd,(originname,savename,userid,"none",target,ftype + "to","activate",current_time))
+    cursor.execute(cmd,(originname,savename,userid,"none",target,ftype + "from","activate",current_time))
     # cursor.execute(cmd,(originname,savename,target,"none",userid,ftype + "to","activate",current_time))
     # cursor.execute(cmd,(originname,savename,userid,"none",target,ftype + "from","activate",current_time))
     db_conn.commit()
@@ -1520,7 +1520,7 @@ def serversendfile(cursor,sock,userid,data,db_conn):
             while file_chunk:
                 send_file(sock,file_chunk)
                 file_chunk = file.read(4096*2) 
-                print("sending...")
+                # print("sending...")
         time.sleep(0.15)
         # send_msg(sock,"T03+SUCCESS")
         # send_msg(sock,"Successfully Send the file!")
@@ -1575,7 +1575,7 @@ def getpreviousfile_(cursor,sock,userid,source,ftype,db_conn,clear = 1):
     AND type = ?
     AND datetime < ?)
     '''
-    cursor.execute(cmd,(source,"none",userid,ftype+"to",ct,userid,"none",source,ftype+"to",ct))
+    cursor.execute(cmd,(source,"none",userid,ftype+"to",ct,userid,"none",source,ftype+"from",ct))
     rows = cursor.fetchall() 
     if clear == 1:
         cmd = '''
@@ -1592,7 +1592,7 @@ def getpreviousfile_(cursor,sock,userid,source,ftype,db_conn,clear = 1):
         AND type = ?
         AND status = ?)
         '''
-        cursor.execute(cmd,("release",source,"none",userid,ftype+"to","activate",userid,"none",source,ftype+"to","activate"))
+        cursor.execute(cmd,("release",source,"none",userid,ftype+"to","activate",userid,"none",source,ftype+"from","activate"))
         db_conn.commit()
     return rows 
 
@@ -1631,7 +1631,7 @@ def getnewfile_(cursor,sock,userid,source,ftype,db_conn):
     )
     ORDER BY datetime ASC
     '''
-    cursor.execute(cmd,(source,"none",userid,ftype + "to","activate",userid,"none",source,ftype + "to","activate"))
+    cursor.execute(cmd,(source,"none",userid,ftype + "to","activate",userid,"none",source,ftype + "from","activate"))
     rows = cursor.fetchall() 
     cmd = '''
     UPDATE file SET status = ? 
@@ -1640,9 +1640,14 @@ def getnewfile_(cursor,sock,userid,source,ftype,db_conn):
     AND terminal = ?
     AND type = ?
     AND status = ?)
-
+    OR
+     (initial = ?
+    AND via = ?
+    AND terminal = ?
+    AND type = ?
+    AND status = ?)
     '''
-    cursor.execute(cmd,("release",source,"none",userid,ftype + "to","activate"))
+    cursor.execute(cmd,("release",source,"none",userid,ftype + "to","activate",userid,"none",source,ftype + "from","activate"))
     db_conn.commit() 
     return rows 
 
@@ -1805,12 +1810,12 @@ def changeGPTpersona(cursor,sock,data,userid,db_conn):
     AND terminal = ?
     AND datetime < ?
     '''
-    cursor.execute(cmd,("release","GPT3.5",userid,ct))
+    cursor.execute(cmd,("release","Customized GPT",userid,ct))
     db_conn.commit() 
-    cursor.execute(cmd,("release",userid,"GPT3.5",ct))
+    cursor.execute(cmd,("release",userid,"Customized GPT",ct))
     db_conn.commit() 
-    send_msg(sock,"A00+SUCCESS")
-    send_msg(sock,"You changed GPT's persona! All the history were cleared!")
+    # send_msg(sock,"A00+SUCCESS")
+    # send_msg(sock,"You changed GPT's persona! All the history were cleared!")
 
 
 def readGPTpersona_(userid):
@@ -1887,8 +1892,8 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
             INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
             VALUES(?,?,?,?,?,?,?)
             '''
-            cursor.execute(cmd,(userid,"activate","Customized GPT",res,ct2,"activate","chatto"))
-            cursor.execute(cmd,(userid,"activate","Customized GPT",res,ct2,"activate","chatfrom"))
+            cursor.execute(cmd,("Customized GPT","activate",userid,res,ct2,"activate","chatto"))
+            cursor.execute(cmd,("Customized GPT","activate",userid,res,ct2,"activate","chatfrom"))
             # cursor.execute(cmd,(userid,"activate","Customized GPT",res,ct2,"activate","AIchatto")) 
             db_conn.commit() 
             # send_msg(sock,"A02+SUCCESS")
@@ -1926,8 +1931,8 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
         INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
         VALUES(?,?,?,?,?,?,?)
         '''
-        cursor.execute(cmd,(userid,"activate","Little OP",res,ct2,"activate","chatto"))
-        cursor.execute(cmd,(userid,"activate","Little OP",res,ct2,"activate","chatfrom"))
+        cursor.execute(cmd,("Little OP","activate",userid,res,ct2,"activate","chatto"))
+        cursor.execute(cmd,("Little OP","activate",userid,res,ct2,"activate","chatfrom"))
         db_conn.commit() 
         # send_msg(sock,"A02+SUCCESS")
         # send_msg(sock,"You have send a message to DIY1-AI!")
@@ -1964,8 +1969,8 @@ def sendGPTmessage(cursor,sock,data,userid,db_conn,myGPT):
         INSERT INTO message (initial, via ,terminal, content, datetime,unreadflag,type)
         VALUES(?,?,?,?,?,?,?)
         '''
-        cursor.execute(cmd,(userid,"activate","Crazy Dave",res,ct2,"activate","chatto"))
-        cursor.execute(cmd,(userid,"activate","Crazy Dave",res,ct2,"activate","chatfrom"))
+        cursor.execute(cmd,("Crazy Dave","activate",userid,res,ct2,"activate","chatto"))
+        cursor.execute(cmd,("Crazy Dave","activate",userid,res,ct2,"activate","chatfrom"))
         db_conn.commit() 
         # send_msg(sock,"A02+SUCCESS")
         # send_msg(sock,"You have send a message to DIY2-AI!")
@@ -2213,16 +2218,18 @@ def updatedetector(cursor,sock,userid):
         WHERE (initial = ?
         AND via = ?
         AND terminal = ?
+        AND type LIKE  ?
         AND status = ?)
         OR
         (
         initial = ?
         AND via = ?
         AND terminal = ?
+        AND type LIKE  ?
         AND status = ?
         )
         '''
-        cursor.execute(cmd,(item,"none",userid,"activate",userid,"none",item,"activate"))
+        cursor.execute(cmd,(item,"none",userid,"%to","activate",userid,"none",item,"%from","activate"))
         rows = cursor.fetchall() 
         l2 = len(rows)
         if l1 >0 or l2 > 0 :
