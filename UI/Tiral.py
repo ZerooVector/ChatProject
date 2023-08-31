@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QDialog,QFileDialog
-from PyQt5 import uic, QtCore
+from PyQt5 import uic, QtCore , QtGui
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QListWidgetItem, QTreeWidgetItem, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QMessageBox
 from PyQt5.QtGui import QPixmap
@@ -424,6 +424,8 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # 槽函数 上传头像
         self.uploadAvatarBtn.clicked.connect(self.uploadAvatar)
         # 槽函数 同意拒绝好友申请
+        #  friend_request_list = []
+        #  self.contactFriendList_2.addItems(friend_request_list)
         self.acceptBtn.clicked.connect(self.accept_friend_request)
         self.rejectBtn.clicked.connect(self.reject_friend_request)
         # 槽函数 进入语音聊天
@@ -432,6 +434,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # self.TransformBtn.clicked.connect(self.transform)
         # 槽函数 发送语音
         # self.sendVoiceBtn.clicked.connect(self.sendvoice)
+        self.tabWidget.currentChanged['int'].connect(self.tabfun)
         # ------------以上为Ui设置
 
         # 获取个人信息
@@ -441,7 +444,9 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # self.loadContactList()
         self.loadContactsList()
         self.showMsgPage.hide()
-    
+
+    def tabfun(self):
+        print("skdfj")
     def informationClicked(self):
         self.information = Information()
         self.information.show()
@@ -760,6 +765,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     def intoVoicecall(self): #进入语音聊天
         self.call = Voicecall()
         str = "用户名" # TODO str为你所对话的用户名
+        # TODO add voice
         self.call.name.setText("您正在与"+str+"语音通话中")
         self.call.show()
         self.call.exec_()
@@ -900,7 +906,7 @@ class Register(QDialog, Ui_Register):
 class Information(QDialog, Ui_Information):
     def __init__(self, parent = None):
         super(Information, self).__init__(parent)
-        self.setWindowTitle("BlazIngchaT")
+        self.setWindowTitle("BlazIngChaT")
         self.setupUi(self)
         self.ChangeNickname.setPlaceholderText("旧昵称")
         self.GoBtn.clicked.connect(self.GoClicked)
@@ -940,7 +946,20 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     loginwindow = loginWindow()
-
+    loginwindow.setObjectName("BlazIngChaT")
+    loginwindow.setStyleSheet("#BlazIngChaT{border-image:url(./picture/BlazIngChaT.png);}")
+    loginwindow.loginBtn.setIcon(QtGui.QIcon("./picture/login.png"))
+    loginwindow.loginBtn.setIconSize(QtCore.QSize(40, 40))
+    loginwindow.loginBtn.setStyleSheet("border:none;")
+    loginwindow.faceBtn.setIcon(QtGui.QIcon("./picture/face.png"))
+    loginwindow.faceBtn.setStyleSheet("border:none;")
+    loginwindow.faceBtn.setIconSize(QtCore.QSize(40, 40))
+    loginwindow.exitBtn.setIcon(QtGui.QIcon("./picture/exit.png"))
+    loginwindow.exitBtn.setStyleSheet("border:none;")
+    loginwindow.exitBtn.setIconSize(QtCore.QSize(40, 40))
+    loginwindow.registerBtn.setIcon(QtGui.QIcon("./picture/register.png"))
+    loginwindow.registerBtn.setStyleSheet("border:none;")
+    loginwindow.registerBtn.setIconSize(QtCore.QSize(40,40))
     loginwindow.show()
 
     if (loginwindow.exec_()== QDialog.Accepted):
@@ -948,6 +967,8 @@ if __name__ == '__main__':
         mainwindow = mainWindow(userName=loginwindow.userName)
         updater = mainWindowUpdater(mainwindow)
         mainwindow.show()
+        
+    voicecall = Voicecall()
 
     sys.exit(app.exec_())
 
