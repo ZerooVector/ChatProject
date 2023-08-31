@@ -41,8 +41,8 @@ RECORDING2 = False
 stream2 = None 
 audio_data2 = None 
 FACE_UPLOAD_FLAG = 0
-dataset_path = './face_dataset' 
-testset_path = './test'
+dataset_path = './face_dataset/' 
+testset_path = './test/'
 import shutil
 
 ############ tool functions ############## 
@@ -55,6 +55,7 @@ def send_msg(sock, msg):
     sock.sendall(msg_header + msg)
 
 def recv_msg(sock):
+    sock.setblocking(True)
     msg_header = sock.recv(4).decode('utf-8').strip()
     
     # 检查消息头是否为空
@@ -236,7 +237,7 @@ def voicechat():
 
 
 def CatchUsbVideo(window_name, camera_idx,dataset_path):
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt2.xml')
+    face_cascade = cv2.CascadeClassifier('E:/2023-2024 # 1(now)/finaltest/haarcascade_frontalface_alt2.xml')
     cap = cv2.VideoCapture(camera_idx)
     while cap.isOpened():
         # 截取保存这一帧
@@ -316,18 +317,19 @@ def clientsendface(client_sock,address):
             send_file(client_sock,file_chunk)
             file_chunk = file.read(4096*2)
 
-def clientuploadface(sock,data):
-    global FACE_UPLOAD_FLAG
+def clientuploadface(sock,data,dataset_path):
+    global FACE_UPLOAD_FLAG,STOP_UPDATE
+    STOP_UPDATE = True 
     if not os.path.exists(dataset_path):
         os.mkdir(dataset_path)
-    camera = cv2.VideoCapture(0,cv2.CAP_DSHOW,dataset_path)
+    camera = cv2.VideoCapture(0,cv2.CAP_DSHOW)
     ret, frame = camera.read()
-    CatchUsbVideo("camera", 0)
+    CatchUsbVideo("camera", 0,dataset_path)
     # 5秒后关闭窗口   
     camera.release()
     cv2.destroyAllWindows() 
-    sourcePath = './face_dataset'
-    targetPath = './face_dataset_gray'
+    sourcePath = './face_dataset/'
+    targetPath = './face_dataset_gray/'
     readPicSaveFace(sourcePath, targetPath, '.jpg', '.JPG', 'png', 'PNG')
     global FACE_UPLOAD_FLAG
     FACE_UPLOAD_FLAG = 0
@@ -339,39 +341,45 @@ def clientuploadface(sock,data):
         if FACE_UPLOAD_FLAG == 0:
             FACE_UPLOAD_FLAG = 1
             clientsendface(sock,targetPath + str(item))
-        response = recv_msg(sock)
-        if response == "T10+SUCCESS":
-            FACE_UPLOAD_FLAG = 0 
+        # response = recv_msg(sock)
+        # if response == "T10+SUCCESS":
+            # FACE_UPLOAD_FLAG = 0 
+        break 
     empty_folder("face_dataset")
     empty_folder("face_dataset_gray")
+    STOP_UPDATE = False 
     
-def clientcheckface(sock,data):
-    global FACE_UPLOAD_FLAG 
+def clientcheckface(sock,data,testset_path):
+    global FACE_UPLOAD_FLAG ,STOP_UPDATE 
+    STOP_UPDATE = True
     if not os.path.exists(testset_path):
         os.mkdir(testset_path)
-    camera = cv2.VideoCapture(0,cv2.CAP_DSHOW,testset_path)
+    camera = cv2.VideoCapture(0,cv2.CAP_DSHOW)
     ret, frame = camera.read()
 
     # 展示摄像头画面  
-    CatchUsbVideo("camera", 0)
+    CatchUsbVideo("camera", 0,testset_path)
     # 2秒后关闭窗口   
     camera.release()
     cv2.destroyAllWindows() 
-    sourcePath = './test'# 原始测试数据文件地址，换成自己的
-    targetPath = './test_gray'# 处理后的测试图片的文件存储地址
+    sourcePath = './test/'# 原始测试数据文件地址，换成自己的
+    targetPath = './test_gray/'# 处理后的测试图片的文件存储地址
     readPicSaveFace(sourcePath, targetPath, '.jpg', '.JPG', 'png', 'PNG')
     all_facefile_list = os.listdir(targetPath)
+    send_msg(sock,data)
     for item in all_facefile_list:
         while FACE_UPLOAD_FLAG == 1:
             pass # 直到标记消失，则上传另一张图
         if FACE_UPLOAD_FLAG == 0:
             FACE_UPLOAD_FLAG = 1
             clientsendface(sock,targetPath + str(item))
-        response = recv_msg(sock)
-        if response == "T10+SUCCESS":
-            FACE_UPLOAD_FLAG = 0 
+        # response = recv_msg(sock)
+        # if response == "T10+SUCCESS":
+            # FACE_UPLOAD_FLAG = 0 
+        break 
     empty_folder("test")
     empty_folder("test_gray")
+    STOP_UPDATE = False 
     
 
 ##########################################################
@@ -783,7 +791,7 @@ class customChatItem(QListWidgetItem):
     def __init__(self, name, img, all_msg, isGroup = False):
         super().__init__()
 
-        self.setStyleSheet()
+        # self.setStyleSheet()
 
         self.all_msg = all_msg
         self.name = name
@@ -876,7 +884,11 @@ class chatBubble(QWidget):
         self.isVoiceMsg = isVoiceMsg 
 
 
-        
+
+        # self.setStyleSheet("background-color: red;\
+        #                     border-radius: 10px\
+        #                    padding: 10px")
+
 
         
         msgTitle = QLabel(name +":  at " + date.strftime("%Y-%m-%d, %H:%M:%S") )
@@ -1026,7 +1038,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         #槽函数 上传头像
         self.uploadAvatarBtn.clicked.connect(self.uploadAvatar)
         # 槽函数 上传人脸
-        self.uploadFaceBtn.clicked.conncet(self.uploadFace)
+        self.uploadFaceBtn.clicked.connect(self.uploadFace)
 
         #---
         # 槽函数 同意拒绝好友申请
@@ -1178,6 +1190,8 @@ class mainWindow(QMainWindow, Ui_MainWindow):
     # 上传人脸信息
     def uploadFace(self):
         print("uploadFace")
+        str_msg = "R00+"
+        clientuploadface(client_sock,str_msg,dataset_path) 
         # self.userInfo["userNameInfo"]
         pass
 
@@ -1485,8 +1499,12 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         print(item.isGroup)
         msg = self.chatMsgEdit.toPlainText()
         if item.isGroup == 0:
-            str_msg = "C00+" + str(item.name) + "||-||" + msg 
-            send_msg(client_sock,str_msg)
+            if item.name not in ["Customized GPT","Little OP","Crazy Dave"] :
+                str_msg = "C00+" + str(item.name) + "||-||" + msg 
+                send_msg(client_sock,str_msg)
+            else :
+                str_msg = "A02+" + str(item.name) + "||-||" + msg 
+                send_msg(client_sock,str_msg)
 
         if item.isGroup == 1:
             str_msg = "C03+" + str(item.name) + "||-||" + msg 
@@ -1656,7 +1674,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         # msg格式   [发送者 接受者 内容 时间 是否已读]
         send_msg(client_sock,"U01+") # 先获取用户列表和群组列表
         friend_and_group_dict = ast.literal_eval(recv_msg(client_sock))
-        friend_list = friend_and_group_dict["friends"] 
+        friend_list = friend_and_group_dict["friends"] + ["Customized GPT","Little OP","Crazy Dave"] 
         group_list = friend_and_group_dict["groups"]
 
         # 接下来开始逐个人拉取信息，生成对应的消息列表
@@ -1665,7 +1683,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             send_msg(client_sock,"U02+"+item)
             response = ast.literal_eval(recv_msg(client_sock))
             all_msg = [] 
-            # print(response)
+            print(response)
             for thing in response:
                 
                 all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
@@ -1680,7 +1698,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
             send_msg(client_sock,"U03+"+item)
             response = ast.literal_eval(recv_msg(client_sock))
             all_msg = [] 
-            # print(response)
+            print(response)
             for thing in response:
                 all_msg.append((thing[0],thing[2],thing[3],datetime.strptime(thing[4], '%Y-%m-%d %H:%M:%S.%f'),thing[5],))
             if len(all_msg) > 0:
@@ -1981,7 +1999,7 @@ class mainWindowUpdater():
                     str_msg = "U04+"
                     send_msg(client_sock,str_msg)
                     response = ast.literal_eval(recv_msg(client_sock))
-                    friends = response["friends"]
+                    friends = response["friends"] 
                     groups = response["groups"]
                     self.mainwindow.reLoadChatList(friends,groups)
                 
@@ -2042,58 +2060,66 @@ class loginWindow(QDialog, Ui_LoginDialog):
         pix = QPixmap("./title.png")
         self.label_3.setPixmap(pix)
         self.label_3.setScaledContents(True)
+
+        self.faceBtn.clicked.connect(self.useface)
+
    #    self.faceBtn.clicked.connect(self.useface)
         self.setLoginDialog()
 
 
-    def setLoginDialog(self):
-            line_edit_style = """
-            QLineEdit {
-                border: 2px solid #DF7163;
-                border-radius: 5px;
-                padding: 5px;
-            }
+#     def setLoginDialog(self):
+#             line_edit_style = """
+#             QLineEdit {
+#                 border: 2px solid #DF7163;
+#                 border-radius: 5px;
+#                 padding: 5px;
+#             }
             
-            QLineEdit:focus {
-                border-color: #45a049;
-            }
-            """ 
-            button_style = """
-                        QPushButton {
-                            background-color: #A6A5C4;
-                            color: white;
-                            border-radius: 5px;
-                            padding: 10px;
-                        }
+#             QLineEdit:focus {
+#                 border-color: #45a049;
+#             }
+#             """ 
+#             button_style = """
+#                         QPushButton {
+#                             background-color: #A6A5C4;
+#                             color: white;
+#                             border-radius: 5px;
+#                             padding: 10px;
+#                         }
                         
-                        QPushButton:hover {
-                            background-color: #9E8B8E;
-                        }
+#                         QPushButton:hover {
+#                             background-color: #9E8B8E;
+#                         }
                         
-                        QPushButton:pressed {
-                            background-color: #379683;
-                        }
-                """
-            self.usrLineEdit.setStyleSheet(line_edit_style)
-            self.pwdLineEdit.setStyleSheet(line_edit_style)
+#                         QPushButton:pressed {
+#                             background-color: #379683;
+#                         }
+#                 """
+#             self.usrLineEdit.setStyleSheet(line_edit_style)
+#             self.pwdLineEdit.setStyleSheet(line_edit_style)
 
-            self.loginBtn.setStyleSheet(button_style)
+#             self.loginBtn.setStyleSheet(button_style)
+
 
     def useface(self):
+        str_msg = "R01+"+ self.usrLineEdit.text()
+        clientcheckface(client_sock,str_msg,testset_path)
+        response = recv_msg(client_sock)
         pass
         # self.usrLineEdit.text() 是用户名
         # TODO 人脸识别
-        # if self.usrLineEdit.text() == "":
-        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户名不得为空')
-        #  msg_box.exec_()
-        # elif 未录入人脸 :
-        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户未录入人脸')
-        #  msg_box.exec_()
-        # elif 人脸识别失败 :
-        #  msg_box = QMessageBox(QMessageBox.Critical, '错误', '人脸识别失败')
-        #  msg_box.exec_()
-        # else:
-        #   self.accept()
+        if self.usrLineEdit.text() == "":
+         msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户名不得为空')
+         msg_box.exec_()
+        elif response == "RECOERR":
+         msg_box = QMessageBox(QMessageBox.Critical, '错误', '用户未录入人脸')
+         msg_box.exec_()
+        elif response == "RECOFAIL":
+         msg_box = QMessageBox(QMessageBox.Critical, '错误', '人脸识别失败')
+         msg_box.exec_()
+        else:
+          self.userName = self.usrLineEdit.text()
+          self.accept()
     def intoRegister(self):
         self.regist = Register()
         self.regist.show()
