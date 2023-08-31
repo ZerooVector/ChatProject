@@ -177,6 +177,7 @@ class customContactItem(QTreeWidgetItem):
         self.deleteContactBtn.setStyleSheet("border: none; \
                                             background-color: white;\
                                              background-image: url(/home/jh/code/QtDemo/Project_Github/ChatProject/client_Trial/backgroundImg/deleteContactBtn.png);")
+        self.deleteContactBtn.setFixedSize(20, 20)
         # self.deleteContactBtn.setText("Delete")
         # 槽函数，当按钮被点击时删除该项
         self.deleteContactBtn.clicked.connect(self.deleteContact)
@@ -229,7 +230,17 @@ class customContactItem(QTreeWidgetItem):
 class customGroupMemberItem(QWidget):
     def __init__(self, name, img, isManager = False, isBoss = False, parent = None):
         super().__init__(parent)
-        
+        button_style = """
+            QPushButton {
+                background-color: #AD8B73;
+                color: white;
+                border-radius: 5px;
+                padding: 3px;
+            }
+            
+            QPushButton:hover {
+                background-color: #9E8B8E;}
+            """
         self.name = name
         self.img = img
         self.isManager = isManager
@@ -247,9 +258,11 @@ class customGroupMemberItem(QWidget):
         self.layout.addWidget(self.nameLabel)
         
         self.addManagerBtn = QPushButton("addManager")
+        self.addManagerBtn.setStyleSheet(button_style)
         self.addManagerBtn.clicked.connect(self.addManager)
         self.addManagerBtn.hide()
-        self.removeMemberBtn = QPushButton("removeMember")
+        self.removeMemberBtn = QPushButton("remove")
+        self.removeMemberBtn.setStyleSheet(button_style)
         self.removeMemberBtn.clicked.connect(self.removeMember)
         self.removeMemberBtn.hide()
         self.addManagerBtn.setEnabled(False)
@@ -339,6 +352,23 @@ class customContactQlistWidgetItem(QListWidgetItem):
 class customGroupValidationItem(QListWidgetItem):
     def __init__(self, name, dateTime, isSolved = False, isAccepted = None):
         super().__init__()
+
+        button_style = """
+            QPushButton {
+                background-color: #AD8B73;
+                color: white;
+                border-radius: 5px;
+                padding: 7px;
+            }
+            
+            QPushButton:hover {
+                background-color: #9E8B8E;
+            }
+            
+            QPushButton:pressed {
+                background-color: #379683;
+            }
+        """
         self.name = name
         self.dateTime = dateTime
         self.isSolved = isSolved 
@@ -346,16 +376,23 @@ class customGroupValidationItem(QListWidgetItem):
         self.groupName = None
 
         self.timeLabel = QLabel(self.dateTime.strftime("%Y-%m-%d, %H:%M:%S"))
+        print("here?")
         self.validationMsgLabel = QLabel(
             "\"{}\" wants to join your group" .format(self.name)
         )
+        self.validationMsgLabel.setStyleSheet("background-color : #CEAB93;\
+                                            border-radius: 10px;\
+                                            padding: 10px")
         self.allowJoinBtn = QPushButton()
+        self.allowJoinBtn.setStyleSheet(button_style)
         self.allowJoinBtn.setText("Allow")
         self.allowJoinBtn.clicked.connect(self.allowJoin)
         self.rejectJoinBtn = QPushButton()
+        self.rejectJoinBtn.setStyleSheet(button_style)
         self.rejectJoinBtn.setText("Reject")
         self.rejectJoinBtn.clicked.connect(self.rejectJoin)
         self.stateBtn = QPushButton()
+        self.stateBtn.setStyleSheet(button_style)
         self.stateBtn.setEnabled(False)
         self.stateBtn.hide()
         if self.isSolved :
@@ -411,6 +448,7 @@ class customChatItem(QListWidgetItem):
     img_size = (50, 50)
     def __init__(self, name, img, all_msg, isGroup = False):
         super().__init__()
+
         self.all_msg = all_msg
         self.name = name
         self.isGroup = isGroup
@@ -500,7 +538,7 @@ class chatBubble(QWidget):
         msgTitle = QLabel(name +":  at " + date.strftime("%Y-%m-%d, %H:%M:%S") )
         
         msgLabel = QLabel(content)
-        msgLabel.setStyleSheet("background-color: #E7E7EB;\
+        msgLabel.setStyleSheet("background-color: #CEAB93;\
                             border-radius: 10px;\
                            padding: 10px")
         msgLabel.setWordWrap(True)
@@ -655,10 +693,10 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         #                     ")
         button_style = """
             QPushButton {
-                background-color: #A6A5C4;
+                background-color: #AD8B73;
                 color: white;
                 border-radius: 5px;
-                padding: 10px;
+                padding: 7px;
             }
             
             QPushButton:hover {
@@ -671,20 +709,37 @@ class mainWindow(QMainWindow, Ui_MainWindow):
         """
         list_widget_style = """
             QListWidget {
-                background-color: red;
+                background-color: #fffbe9;
                 border: none;
             }
             
             QListWidget::item {
-                background-color: #FFFFFF;
+                background-color: #CEAB93;
                 color: #333333;
                 padding: 5px;
                 border-bottom: 1px solid #DDDDDD;
             }
             
             QListWidget::item:selected {
-                background-color: #4CAF50;
+                background-color: #FFFBE9;
                 color: white;
+            }
+        """
+        tree_widget_style = """
+            QTreeWidget {
+                background-color: #fffbe9;
+                border: none;
+            }
+            
+            QTreeWidget::item {
+                background-color: #CEAB93;
+                color: white;
+                padding: 5px;
+            }
+            
+            QTreeWidget::item:selected {
+                background-color: #fffbe9;
+                color: black;
             }
         """
         
@@ -695,8 +750,34 @@ class mainWindow(QMainWindow, Ui_MainWindow):
                                             background-color: white;\
                                              background-image: url(/home/jh/code/QtDemo/Project_Github/ChatProject/client_Trial/backgroundImg/addAccountBtn.png);")
         self.pushButton.setStyleSheet(button_style)
+        self.sendFileBtn.setStyleSheet(button_style)
+        self.sendVoiceBtn.setStyleSheet(button_style)
+        self.TransformBtn.setStyleSheet(button_style)
+        self.VoiceCallBtn.setStyleSheet(button_style)
+        self.chatSendBtn.setStyleSheet(button_style)
+        self.manageGroupMemberBtn.setStyleSheet(button_style)
+        self.quitGroupBtn.setStyleSheet(button_style)
+        self.inviteGroupMemberBtn.setStyleSheet(button_style)
+        self.manageContactsBtn.setStyleSheet(button_style)
+        self.uploadAvatarBtn.setStyleSheet(button_style)
+        self.ChangeInformation.setStyleSheet(button_style)
+        self.uploadFaceBtn.setStyleSheet(button_style)
+        self.rejectBtn.setStyleSheet(button_style)
+        self.acceptBtn.setStyleSheet(button_style)
+        self.manageContactsBtn_2.setStyleSheet(button_style)
+
 
         self.chatMsgList.setStyleSheet(list_widget_style)
+        self.contactsList.setStyleSheet(tree_widget_style)
+        self.addContactList.setStyleSheet(tree_widget_style)
+        # self.contactsList.topLevelItem(0).setStyleSheet("\
+        #         QTreeWidgetItem::item:selected {\
+        #         background-color: #fffbe9;\
+        #         color: black;\
+        #     }")
+        self.groupMemberPage.setStyleSheet("background-color: #FFFBE9")
+        self.groupValidationPage.setStyleSheet("background-color: #FFFBE9")
+
 
     # chang传阿人脸信息
     def uploadFace(self):
@@ -1087,7 +1168,7 @@ class mainWindow(QMainWindow, Ui_MainWindow):
                     lllllllllllllllllllllllllllllllllllllllll\
                     ;\lllllllllllllllllllllllllllllllllllllll", dt1, True), ("123", "A", "hey", dt2, False )]
 
-        lsFriend = [("A", "./pic.jpg", all_msg),("B", "pic.jpg", all_msg)]
+        lsFriend = [("A", "/home/jh/code/QtDemo/Project_Github/ChatProject/client_Trial/backgroundImg/pic.jpg", all_msg),("B", "pic.jpg", all_msg)]
         
         # 以上为测试 生成lsFriend即可
         for i in range(len(lsFriend)):
@@ -1298,40 +1379,44 @@ class loginWindow(QDialog, Ui_LoginDialog):
         self.label_3.setPixmap(pix)
         self.label_3.setScaledContents(True)
    #    self.faceBtn.clicked.connect(self.useface)
-        self.setLoginDialog()
+    #     self.setLoginDialog()
 
-    def setLoginDialog(self):
-            line_edit_style = """
-            QLineEdit {
-                border: 2px solid #DF7163;
-                border-radius: 5px;
-                padding: 5px;
-            }
+    # def setLoginDialog(self):
+    #         line_edit_style = """
+    #         QLineEdit {
+    #             border: 2px solid #e3caa5;
+    #             border-radius: 5px;
+    #             padding: 5px;
+    #         }
             
-            QLineEdit:focus {
-                border-color: #45a049;
-            }
-            """ 
-            button_style = """
-                        QPushButton {
-                            background-color: #A6A5C4;
-                            color: white;
-                            border-radius: 5px;
-                            padding: 10px;
-                        }
+    #         QLineEdit:focus {
+    #             border-color: #ad8b93;
+    #         }
+    #         """ 
+    #         button_style = """
+    #                     QPushButton {
+    #                         background-color: #ad8b73;
+    #                         color: white;
+    #                         border-radius: 5px;
+    #                         padding: 10px;
+    #                     }
                         
-                        QPushButton:hover {
-                            background-color: #9E8B8E;
-                        }
+    #                     QPushButton:hover {
+    #                         background-color: #ceab93;
+    #                     }
                         
-                        QPushButton:pressed {
-                            background-color: #379683;
-                        }
-                """
-            self.usrLineEdit.setStyleSheet(line_edit_style)
-            self.pwdLineEdit.setStyleSheet(line_edit_style)
+    #                     QPushButton:pressed {
+    #                         background-color: #379683;
+    #                     }
+    #             """
+    #         self.usrLineEdit.setStyleSheet(line_edit_style)
+    #         self.pwdLineEdit.setStyleSheet(line_edit_style)
 
-            self.loginBtn.setStyleSheet(button_style)
+    #         self.loginBtn.setStyleSheet(button_style)
+    #         self.registerBtn.setStyleSheet(button_style)
+    #         self.exitBtn.setStyleSheet(button_style)
+    #         self.faceBtn.setStyleSheet(button_style)
+
 
     def useface(self):
         pass
